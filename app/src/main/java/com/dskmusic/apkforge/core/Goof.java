@@ -60,8 +60,8 @@ public final class Goof {
         if (!m.find()) throw new ForgeException("Enlace no válido (https://goof.gg/game/… o la URL del juego)");
         String page = new String(get("https://goof.gg/game/" + m.group(1), 20000), "UTF-8");
         Matcher g = Pattern.compile("og:image\" content=\"[^\"]*?/covers/([\\w-]+?)-[0-9a-f]{10}\\.\\w+").matcher(page);
-        if (!g.find()) throw new ForgeException("No encuentro el id del juego en esa página");
-        return g.group(1);
+        // juegos de usuario (UUID): sin portada /covers/, el propio id del enlace es el del juego
+        return g.find() ? g.group(1) : m.group(1);
     }
 
     static Set<String> findPaths(String text) {

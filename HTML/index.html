@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ApkForge — Convierte tu web en un APK firmado | by DSK</title>
+<meta name="description" content="ApkForge convierte tu web o proyecto HTML en un APK firmado e instalable, directamente en tu móvil. Sin Android Studio. Gratis y de código abierto.">
+<meta name="theme-color" content="#0b0b14">
+<link rel="canonical" href="https://apkforge.dskmusic.com/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ApkForge — Tu web, convertida en APK">
+<meta property="og:description" content="Genera APKs firmados desde un ZIP, una carpeta o una web, sin salir del móvil. Gratis y de código abierto.">
+<meta property="og:url" content="https://apkforge.dskmusic.com/">
+<meta property="og:image" content="https://apkforge.dskmusic.com/icon.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+
+
+<style>
+:root{
+  --bg:#0b0b14; --bg2:#11111d; --card:#161626; --line:#25253b; --txt:#eceefb; --mut:#9a9cc0;
+  --v:#4f8cff; --c:#00e5ff; --p:#ff9100; --y:#ffd740; --g:#69f0ae;
+  --grad:linear-gradient(120deg,var(--v),var(--c) 55%,var(--p));
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.6;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.wrap{width:min(1120px,92vw);margin:0 auto}
+svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.125em}
+svg.f{fill:currentColor;stroke:none}
+
+/* fondo con manchas de color */
+.blobs{position:fixed;inset:0;z-index:-1;overflow:hidden}
+.blobs i{position:absolute;border-radius:50%;filter:blur(110px);opacity:.38;animation:float 18s ease-in-out infinite}
+.blobs i:nth-child(1){width:520px;height:520px;background:var(--v);top:-120px;left:-120px}
+.blobs i:nth-child(2){width:440px;height:440px;background:var(--c);top:30%;right:-160px;animation-delay:-6s;opacity:.25}
+.blobs i:nth-child(3){width:480px;height:480px;background:var(--p);bottom:-160px;left:25%;animation-delay:-11s;opacity:.22}
+@keyframes float{50%{transform:translate(40px,-30px) scale(1.12)}}
+
+/* navegación */
+nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);background:rgba(11,11,20,.7);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;gap:26px;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.25rem;letter-spacing:.3px}
+.logo b{width:34px;height:34px;border-radius:10px;background:var(--grad);display:grid;place-items:center;color:#fff;font-size:1rem}
+nav ul{display:flex;gap:22px;list-style:none;margin-left:auto;color:var(--mut);font-size:.95rem}
+nav ul a:hover{color:var(--txt)}
+.lang{border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:999px;padding:6px 14px;cursor:pointer;font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 26px;border-radius:14px;font-weight:700;border:1px solid var(--line);background:var(--card);cursor:pointer;transition:.2s;font-size:1rem;color:var(--txt)}
+.btn:hover{transform:translateY(-2px);border-color:#3a3a5c}
+.btn.main{background:var(--grad);border:0;color:#0b0b14;box-shadow:0 10px 34px rgba(124,77,255,.4)}
+.btn.main:hover{box-shadow:0 14px 44px rgba(0,229,255,.45)}
+@media(max-width:760px){nav ul{display:none}.lang{margin-left:auto}}
+
+/* hero */
+.hero{padding:70px 0 40px;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+.tag{display:inline-flex;gap:8px;align-items:center;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--mut);font-size:.85rem;margin-bottom:22px}
+.tag s{width:8px;height:8px;border-radius:50%;background:var(--g);box-shadow:0 0 12px var(--g)}
+h1{font-size:clamp(2.4rem,6vw,4.1rem);line-height:1.05;font-weight:900;letter-spacing:-1.5px}
+.grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:var(--mut);font-size:1.15rem;margin:22px 0 32px;max-width:560px}
+.cta{display:flex;gap:14px;flex-wrap:wrap}
+.meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:24px;color:var(--mut);font-size:.88rem}
+.meta span{display:flex;gap:6px;align-items:center}
+@media(max-width:900px){.hero{grid-template-columns:1fr;text-align:center}.lead{margin-inline:auto}.cta,.meta{justify-content:center}}
+
+/* móvil de muestra (CSS puro) */
+.phone{width:290px;margin:0 auto;border-radius:40px;padding:12px;background:linear-gradient(160deg,#2a2a45,#12121f);border:1px solid #34345a;box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 80px rgba(124,77,255,.25);transform:rotate(3deg)}
+.screen{border-radius:30px;background:#0e0e1a;overflow:hidden;aspect-ratio:9/18.5;position:relative}
+.vid{position:absolute;inset:0 0 38% 0;background:radial-gradient(circle at 70% 30%,#ff4081 0,transparent 45%),radial-gradient(circle at 25% 70%,#00e5ff 0,transparent 50%),linear-gradient(160deg,#311b92,#7c4dff 60%,#1a237e);display:grid;place-items:center}
+.vid h3{font-size:2.3rem;font-weight:900;letter-spacing:2px;text-shadow:0 4px 24px rgba(0,0,0,.5)}
+.vid small{position:absolute;bottom:10px;left:12px;background:rgba(0,0,0,.45);padding:3px 10px;border-radius:999px;font-size:.62rem;letter-spacing:1px}
+.tl{position:absolute;left:0;right:0;bottom:0;height:38%;padding:12px 10px;background:#12121f;border-top:1px solid var(--line)}
+.tl .row{height:22px;border-radius:7px;margin-bottom:7px;position:relative;overflow:hidden}
+.tl .row u{position:absolute;top:0;bottom:0;border-radius:6px;text-decoration:none}
+.r1{background:#1d1d33}.r1 u:nth-child(1){left:0;width:34%;background:linear-gradient(90deg,#7c4dff,#9c78ff)}.r1 u:nth-child(2){left:35%;width:28%;background:linear-gradient(90deg,#00b8d4,#00e5ff)}.r1 u:nth-child(3){left:64%;width:34%;background:linear-gradient(90deg,#ff4081,#ff80ab)}
+.r2{background:#1d1d33}.r2 u:nth-child(1){left:12%;width:30%;background:#ffd740}.r2 u:nth-child(2){left:52%;width:36%;background:#69f0ae}
+.r3{background:#1d1d33}.r3 u{left:0;width:96%;background:repeating-linear-gradient(90deg,#3d3d66 0 3px,transparent 3px 7px)}
+.head{position:absolute;left:46%;top:6px;bottom:6px;width:2px;background:#fff;border-radius:2px;box-shadow:0 0 10px #fff}
+.chip{position:absolute;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:9px 14px;font-size:.8rem;font-weight:700;display:flex;gap:8px;align-items:center;box-shadow:0 14px 40px rgba(0,0,0,.5);animation:bob 5s ease-in-out infinite}
+.chip svg{color:var(--c)}
+@keyframes bob{50%{transform:translateY(-10px)}}
+.mock{position:relative}
+
+/* cifras */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin:50px 0 20px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 12px;text-align:center}
+.stat b{display:block;font-size:2rem;font-weight:900;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat span{color:var(--mut);font-size:.85rem}
+@media(max-width:900px){.stats{grid-template-columns:repeat(3,1fr)}}
+
+section{padding:80px 0}
+.eyebrow{color:var(--c);font-weight:700;letter-spacing:2px;font-size:.8rem;text-transform:uppercase}
+h2{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;letter-spacing:-1px;margin:10px 0 14px}
+.sub{color:var(--mut);max-width:640px;font-size:1.05rem}
+.center{text-align:center}.center .sub{margin-inline:auto}
+
+/* funciones */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px}
+@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:26px;transition:.25s;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-5px);border-color:#3b3b66}
+.card:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 0 0,var(--glow,rgba(124,77,255,.18)),transparent 55%);opacity:.9;pointer-events:none}
+.ico{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;font-size:1.5rem;margin-bottom:18px;color:#0b0b14;background:var(--ic,var(--v));position:relative}
+.card h3{font-size:1.15rem;margin-bottom:8px;position:relative}
+.card p{color:var(--mut);font-size:.95rem;position:relative}
+
+/* asistente */
+.assist{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center}
+@media(max-width:900px){.assist{grid-template-columns:1fr}}
+.steps{list-style:none;margin-top:30px;counter-reset:s}
+.steps li{display:flex;gap:16px;margin-bottom:22px;counter-increment:s}
+.steps li:before{content:counter(s);flex:none;width:40px;height:40px;border-radius:50%;background:var(--grad);color:#0b0b14;font-weight:900;display:grid;place-items:center}
+.steps b{display:block}.steps span{color:var(--mut);font-size:.95rem}
+.pills{display:flex;flex-wrap:wrap;gap:10px}
+.pill{padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:.9rem;font-weight:600;display:flex;gap:8px;align-items:center}
+.pill i{width:10px;height:10px;border-radius:50%;background:var(--pc)}
+
+/* descarga */
+.dl{background:linear-gradient(135deg,rgba(124,77,255,.22),rgba(0,229,255,.12) 60%,rgba(255,64,129,.18));border:1px solid #3a3a63;border-radius:30px;padding:54px 30px;text-align:center}
+.dl .btn{font-size:1.15rem;padding:18px 34px;margin-top:26px}
+.ver{margin-top:16px;color:var(--mut);font-size:.9rem}
+.req{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:36px;text-align:left}
+@media(max-width:800px){.req{grid-template-columns:1fr}}
+.req div{background:rgba(11,11,20,.55);border:1px solid var(--line);border-radius:16px;padding:16px 18px;color:var(--mut);font-size:.92rem}
+.req b{color:var(--txt);display:block;margin-bottom:4px}
+
+details{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 22px;margin-top:12px}
+summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary:after{content:"+";color:var(--c);font-size:1.3rem;line-height:1}
+details[open] summary:after{content:"–"}
+details p{color:var(--mut);margin-top:12px}
+footer{border-top:1px solid var(--line);padding:36px 0;color:var(--mut);font-size:.92rem}
+footer .wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
+footer a{color:var(--txt);font-weight:600}footer a:hover{color:var(--c)}
+.reveal{opacity:0;transform:translateY(24px);transition:.7s}.reveal.on{opacity:1;transform:none}
+html{-webkit-text-size-adjust:100%}
+img,svg{max-width:100%}
+.navdl{display:none}
+
+/* Móvil: columna única, botones a todo el ancho, tipografías y márgenes más compactos */
+@media(max-width:760px){
+  nav .wrap{gap:12px;height:58px}
+  .navdl{display:inline-flex;margin-left:auto;padding:8px 14px;border-radius:12px;font-size:.88rem;font-weight:700;background:var(--grad);color:#0b0b14;gap:6px;align-items:center}
+  .lang{margin-left:0}
+  .hero{padding:36px 0 20px;gap:30px}
+  .lead{font-size:1.02rem}
+  .phone{width:250px;transform:none}
+  .chip{padding:7px 11px;font-size:.72rem}
+  section{padding:56px 0}
+  .stats{margin-top:34px}
+}
+@media(max-width:560px){
+  .cta{flex-direction:column;align-items:stretch}
+  .cta .btn{justify-content:center;width:100%}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .stat{padding:16px 8px}.stat b{font-size:1.6rem}
+  .grid{gap:14px}
+  .card{padding:22px}
+  .dl{padding:38px 18px;border-radius:24px}
+  .dl .btn{width:100%;justify-content:center;font-size:1.05rem;padding:16px 20px}
+  .steps li{gap:12px}
+  .pill{padding:7px 12px;font-size:.82rem}
+  details{padding:16px 18px}
+  footer .wrap{flex-direction:column;text-align:center}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+
+.screen .app{position:absolute;inset:0;padding:18px 14px;display:flex;flex-direction:column;gap:10px}
+.screen .app img{width:54px;height:54px;border-radius:14px;margin:6px auto 0}
+.screen .app h3{text-align:center;font-size:1.2rem}
+.tabs{display:flex;gap:5px;font-size:.55rem;font-weight:700}
+.tabs span{flex:1;text-align:center;padding:6px 0;border-radius:8px;background:#1d1d33;color:var(--mut)}.tabs span:first-child{background:var(--v);color:#fff}
+.fld{height:26px;border-radius:8px;background:#1d1d33;border:1px solid var(--line)}
+.gen{margin-top:auto;height:38px;border-radius:12px;background:var(--grad);display:grid;place-items:center;color:#0b0b14;font-weight:800;font-size:.8rem}
+.steps li:before{color:#fff}
+</style></head>
+<body>
+<!-- Iconos planos (estilo de la app) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-wand" viewBox="0 0 24 24"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M15 9h.01M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.2"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zM19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.3-6.2 3.3L7 14.2l-5-4.9 6.9-1z"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="i-gh" viewBox="0 0 24 24"><path class="f" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.500 11.500 0 0 1 6 0c2.300-1.500 3.300-1.200 3.300-1.200.7 1.700.3 2.900.1 3.200.8.800 1.200 1.900 1.200 3.200 0 4.600-2.800 5.600-5.500 5.900.4.400.8 1.100.8 2.200v3.300c0 .3.2.700.8.600A12 12 0 0 0 12 .3"/></symbol>
+</svg>
+<div class="blobs"><i></i><i></i><i></i></div>
+<nav><div class="wrap">
+  <a class="logo" href="#top"><img src="icon.png" width="34" height="34" style="border-radius:10px" alt="">ApkForge</a>
+  <ul>
+    <li><a href="#funciones" data-es="Funciones" data-en="Features">Funciones</a></li>
+    <li><a href="#como" data-es="Cómo funciona" data-en="How it works">Cómo funciona</a></li>
+    <li><a href="#firma" data-es="Firma" data-en="Signing">Firma</a></li>
+    <li><a href="#descargar" data-es="Descargar" data-en="Download">Descargar</a></li>
+    <li><a href="https://github.com/dskmusic/ApkForge" target="_blank" rel="noopener">GitHub</a></li>
+  </ul>
+  <a class="navdl" id="dl-nav" href="https://github.com/dskmusic/ApkForge/releases/latest/download/ApkForge.apk"><svg class="i"><use href="#i-down"/></svg><span data-es="Descargar" data-en="Download">Descargar</span></a>
+  <button class="lang" id="lang" aria-label="Idioma / Language">EN</button>
+</div></nav>
+
+<main id="top"><div class="wrap">
+  <header class="hero">
+    <div>
+      <span class="tag"><s></s><span data-es="Gratis · Código abierto · Para Android" data-en="Free · Open source · For Android">Gratis · Código abierto · Para Android</span></span>
+      <h1><span data-es="Convierte tu web en un APK," data-en="Turn your website into an APK,">Convierte tu web en un APK,</span> <span class="grad" data-es="desde tu móvil." data-en="right on your phone.">desde tu móvil.</span></h1>
+      <p class="lead" data-es="Un ZIP, una carpeta o una web online: ApkForge genera un APK firmado e instalable en segundos. Sin Android Studio, sin servidor." data-en="A ZIP, a folder or an online website: ApkForge builds a signed, installable APK in seconds. No Android Studio, no server.">Un ZIP, una carpeta o una web online: ApkForge genera un APK firmado e instalable en segundos. Sin Android Studio, sin servidor.</p>
+      <div class="cta">
+        <a class="btn main" id="dl-main" href="https://github.com/dskmusic/ApkForge/releases/latest/download/ApkForge.apk"><svg class="i"><use href="#i-down"/></svg><span data-es="Descargar APK" data-en="Download APK">Descargar APK</span></a>
+        <a class="btn" href="https://github.com/dskmusic/ApkForge" target="_blank" rel="noopener"><svg class="i"><use href="#i-gh"/></svg><span>GitHub</span></a>
+      </div>
+      <div class="meta">
+        <span><svg class="i"><use href="#i-check"/></svg><span data-es="Android 8.0 o superior" data-en="Android 8.0 or newer">Android 8.0 o superior</span></span>
+        <span><svg class="i"><use href="#i-lock"/></svg><span data-es="Todo en el dispositivo" data-en="All on-device">Todo en el dispositivo</span></span>
+        <span><svg class="i"><use href="#i-star"/></svg><span id="ver-chip">Apache 2.0</span></span>
+      </div>
+    </div>
+    <div class="mock">
+      <div class="phone"><div class="screen"><div class="app">
+        <img src="icon.png" alt=""><h3>ApkForge</h3>
+        <div class="tabs"><span>ZIP</span><span data-es="Carpeta" data-en="Folder">Carpeta</span><span>Web</span></div>
+        <div class="fld"></div><div class="fld"></div><div class="fld"></div>
+        <div class="gen" data-es="Generar APK" data-en="Build APK">Generar APK</div>
+      </div></div></div>
+      <div class="chip" style="left:-10px;top:14%"><svg class="i"><use href="#i-lock"/></svg><span data-es="APK firmado" data-en="Signed APK">APK firmado</span></div>
+      <div class="chip" style="right:-6px;top:34%;animation-delay:-1.6s"><svg class="i" style="color:var(--p)"><use href="#i-zap"/></svg><span data-es="Sin servidor" data-en="No server">Sin servidor</span></div>
+      <div class="chip" style="left:0;bottom:12%;animation-delay:-3s"><svg class="i" style="color:var(--y)"><use href="#i-globe"/></svg>ES / EN</div>
+    </div>
+  </header>
+  <div class="stats reveal" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><b>3</b><span data-es="orígenes: ZIP, carpeta, web" data-en="sources: ZIP, folder, web">orígenes: ZIP, carpeta, web</span></div>
+    <div class="stat"><b>0</b><span data-es="servidores necesarios" data-en="servers needed">servidores necesarios</span></div>
+    <div class="stat"><b>v1-v3</b><span data-es="firma de APK" data-en="APK signing">firma de APK</span></div>
+    <div class="stat"><b>8.0+</b><span data-es="Android compatible" data-en="Android supported">Android compatible</span></div>
+  </div>
+</div>
+
+<section id="funciones"><div class="wrap">
+  <div class="center">
+    <span class="eyebrow" data-es="Funciones" data-en="Features">Funciones</span>
+    <h2 data-es="Todo lo que necesitas para publicar tu app" data-en="Everything you need to ship your app">Todo lo que necesitas para publicar tu app</h2>
+  </div>
+  <div class="grid">
+    <div class="card reveal" style="--ic:#4f8cff"><div class="ico"><svg class="i"><use href="#i-layers"/></svg></div><h3 data-es="Tres orígenes" data-en="Three sources">Tres orígenes</h3><p data-es="Desde un ZIP/APK, una carpeta del móvil o una web online." data-en="From a ZIP/APK, a folder on your phone or an online website.">Desde un ZIP/APK, una carpeta del móvil o una web online.</p></div>
+    <div class="card reveal" style="--ic:#00e5ff"><div class="ico"><svg class="i"><use href="#i-wand"/></svg></div><h3 data-es="Personalízalo" data-en="Customize it">Personalízalo</h3><p data-es="Nombre, paquete, versión, icono (propio, favicon de la web o por defecto), orientación, pantalla completa y tema." data-en="App name, package, version, icon (custom, site favicon or default), orientation, fullscreen and theme.">Nombre, paquete, versión, icono (propio, favicon de la web o por defecto), orientación, pantalla completa y tema.</p></div>
+    <div class="card reveal" style="--ic:#ff9100"><div class="ico"><svg class="i"><use href="#i-lock"/></svg></div><h3 data-es="APK firmado" data-en="Signed APK">APK firmado</h3><p data-es="Firma v1/v2/v3 lista para instalar. Usa tu propio keystore (.jks, .keystore, .p12)." data-en="v1/v2/v3 signing, ready to install. Use your own keystore (.jks, .keystore, .p12).">Firma v1/v2/v3 lista para instalar. Usa tu propio keystore (.jks, .keystore, .p12).</p></div>
+    <div class="card reveal" style="--ic:#ffd740"><div class="ico"><svg class="i"><use href="#i-share"/></svg></div><h3 data-es="Instala y comparte" data-en="Install & share">Instala y comparte</h3><p data-es="Instala, comparte uno o varios o guarda como… desde la lista de APKs generados." data-en="Install, share one or several, or save as… from the list of generated APKs.">Instala, comparte uno o varios o guarda como… desde la lista de APKs generados.</p></div>
+    <div class="card reveal" style="--ic:#69f0ae"><div class="ico"><svg class="i"><use href="#i-cpu"/></svg></div><h3 data-es="Todo en el dispositivo" data-en="All on-device">Todo en el dispositivo</h3><p data-es="Sin servidor ni cuentas: tus proyectos no salen del móvil." data-en="No server, no accounts: your projects never leave your phone.">Sin servidor ni cuentas: tus proyectos no salen del móvil.</p></div>
+    <div class="card reveal" style="--ic:#ff80ab"><div class="ico"><svg class="i"><use href="#i-globe"/></svg></div><h3 data-es="Español e inglés" data-en="English & Spanish">Español e inglés</h3><p data-es="Automático según el idioma del móvil; se cambia en Ajustes → Idioma." data-en="Automatic by phone language; change it in Settings → Language.">Automático según el idioma del móvil; se cambia en Ajustes → Idioma.</p></div>
+  </div>
+</div></section>
+
+<section id="como"><div class="wrap assist">
+  <div class="reveal">
+    <span class="eyebrow" data-es="Cómo funciona" data-en="How it works">Cómo funciona</span>
+    <h2 data-es="De tu web a un APK en tres pasos" data-en="From your site to an APK in three steps">De tu web a un APK en tres pasos</h2>
+    <ol class="steps">
+      <li><div><b data-es="Elige el origen" data-en="Pick the source">Elige el origen</b><span data-es="ZIP con index.html, una carpeta o la URL de tu web." data-en="A ZIP with index.html, a folder or your website URL.">ZIP con index.html, una carpeta o la URL de tu web.</span></div></li>
+      <li><div><b data-es="Ponle nombre e icono" data-en="Set name and icon">Ponle nombre e icono</b><span data-es="El paquete se genera solo; ajusta versión y opciones." data-en="The package is generated for you; tweak version and options.">El paquete se genera solo; ajusta versión y opciones.</span></div></li>
+      <li><div><b data-es="Genera e instala" data-en="Build and install">Genera e instala</b><span data-es="Pulsa Generar APK y luego Instalar, Compartir o Guardar como…" data-en="Tap Build APK, then Install, Share or Save as…">Pulsa Generar APK y luego Instalar, Compartir o Guardar como…</span></div></li>
+    </ol>
+  </div>
+  <div class="reveal" id="firma">
+    <span class="eyebrow" data-es="Firma" data-en="Signing">Firma</span>
+    <h2 data-es="Firma tus APKs" data-en="Signing your APKs">Firma tus APKs</h2>
+    <p class="sub" data-es="Por defecto se usa un keystore de depuración público incluido: funciona sin configurar nada. Para publicar tus apps, importa el tuyo en Ajustes → Cambiar keystore; alias y contraseña se piden una sola vez." data-en="By default a bundled public debug keystore is used: zero setup. To publish your apps, import yours in Settings → Change keystore; alias and password are asked only once.">Por defecto se usa un keystore de depuración público incluido: funciona sin configurar nada. Para publicar tus apps, importa el tuyo en Ajustes → Cambiar keystore; alias y contraseña se piden una sola vez.</p>
+  </div>
+</div></section>
+
+<section id="descargar"><div class="wrap">
+  <div class="dl reveal">
+    <span class="eyebrow" data-es="Descarga" data-en="Download">Descarga</span>
+    <h2 data-es="Pruébalo ahora, es gratis" data-en="Try it now, it's free">Pruébalo ahora, es gratis</h2>
+    <p class="sub" style="margin-inline:auto" data-es="Descarga la última versión directamente desde GitHub." data-en="Get the latest version straight from GitHub.">Descarga la última versión directamente desde GitHub.</p>
+    <a class="btn main" id="dl-big" href="https://github.com/dskmusic/ApkForge/releases/latest/download/ApkForge.apk"><svg class="i"><use href="#i-down"/></svg><span data-es="Descargar la última versión" data-en="Download the latest version">Descargar la última versión</span></a>
+    <p class="ver" id="ver-line"><a href="https://github.com/dskmusic/ApkForge/releases/latest" target="_blank" rel="noopener" data-es="Ver todas las versiones en GitHub" data-en="See all releases on GitHub">Ver todas las versiones en GitHub</a></p>
+    <div class="req">
+      <div><b data-es="Requisitos" data-en="Requirements">Requisitos</b><span data-es="Android 8.0 (API 26) o superior." data-en="Android 8.0 (API 26) or newer.">Android 8.0 (API 26) o superior.</span></div>
+      <div><b data-es="Cómo instalarlo" data-en="How to install">Cómo instalarlo</b><span data-es="Abre el APK y permite instalar apps desconocidas para tu navegador o gestor de archivos." data-en="Open the APK and allow installing unknown apps for your browser or file manager.">Abre el APK y permite instalar apps desconocidas para tu navegador o gestor de archivos.</span></div>
+      <div><b data-es="Actualizaciones" data-en="Updates">Actualizaciones</b><span data-es="Las versiones oficiales usan la clave debug pública: no se actualizan sobre un build firmado con otra clave." data-en="Official releases use the public debug key: they can't update over a build signed with a different key.">Las versiones oficiales usan la clave debug pública: no se actualizan sobre un build firmado con otra clave.</span></div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="center"><span class="eyebrow" data-es="Preguntas frecuentes" data-en="FAQ">Preguntas frecuentes</span><h2 data-es="Lo que suelen preguntar" data-en="Frequently asked">Lo que suelen preguntar</h2></div>
+  <div style="max-width:760px;margin:30px auto 0">
+    <details><summary data-es="¿Es gratis?" data-en="Is it free?">¿Es gratis?</summary><p data-es="Sí, es gratis y de código abierto (Apache 2.0)." data-en="Yes, it is free and open source (Apache 2.0).">Sí, es gratis y de código abierto (Apache 2.0).</p></details>
+    <details><summary data-es="¿Necesito Android Studio u ordenador?" data-en="Do I need Android Studio or a computer?">¿Necesito Android Studio u ordenador?</summary><p data-es="No. Todo el proceso, incluida la firma, se hace en el propio móvil." data-en="No. The whole process, signing included, happens on the phone.">No. Todo el proceso, incluida la firma, se hace en el propio móvil.</p></details>
+    <details><summary data-es="¿Funciona sin conexión?" data-en="Does it work offline?">¿Funciona sin conexión?</summary><p data-es="Sí con ZIP y carpetas. Solo el origen «Web» (buscar icono, abrir la URL) necesita Internet." data-en="Yes with ZIPs and folders. Only the “Web” source (icon lookup, opening the URL) needs Internet.">Sí con ZIP y carpetas. Solo el origen «Web» (buscar icono, abrir la URL) necesita Internet.</p></details>
+    <details><summary data-es="¿Dónde se guardan los APKs?" data-en="Where are the APKs stored?">¿Dónde se guardan los APKs?</summary><p data-es="En el almacenamiento privado de la app (se borran al desinstalarla). Usa «Guardar como…» para conservarlos." data-en="In the app's private storage (removed on uninstall). Use “Save as…” to keep them.">En el almacenamiento privado de la app (se borran al desinstalarla). Usa «Guardar como…» para conservarlos.</p></details>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <span><span data-es="Hecho con" data-en="Made with">Hecho con</span> ❤️ <span data-es="por" data-en="by">por</span> <a href="https://www.dskmusic.com/dsk_dev_redirect.php" target="_blank" rel="noopener">DSK</a></span>
+  <span><a href="https://github.com/dskmusic/ApkForge" target="_blank" rel="noopener">GitHub</a> · <a href="https://github.com/dskmusic/ApkForge/blob/main/LICENSE" target="_blank" rel="noopener" data-es="Licencia Apache 2.0" data-en="Apache 2.0 license">Licencia Apache 2.0</a></span>
+</div></footer>
+
+<script>
+(function () {
+  // Idioma: el del navegador (español o inglés) y botón para cambiar.
+  var lang = (localStorage.getItem('apkforge-lang') || (navigator.language || 'es').slice(0, 2)) === 'en' ? 'en' : 'es';
+  function apply() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-es]').forEach(function (e) { e.textContent = e.getAttribute('data-' + lang); });
+    document.getElementById('lang').textContent = lang === 'es' ? 'EN' : 'ES';
+    document.title = lang === 'es' ? 'ApkForge — Convierte tu web en un APK firmado | by DSK' : 'ApkForge — Turn your website into a signed APK | by DSK';
+  }
+  document.getElementById('lang').onclick = function () { lang = lang === 'es' ? 'en' : 'es'; localStorage.setItem('apkforge-lang', lang); apply(); };
+  apply();
+
+  // Aparición suave al hacer scroll.
+  var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } }); }, { threshold: .12 });
+  document.querySelectorAll('.reveal').forEach(function (e) { io.observe(e); });
+
+  // Última versión de GitHub: número, fecha y tamaño. Si falla, los botones siguen apuntando a /releases/latest.
+  fetch('https://api.github.com/repos/dskmusic/ApkForge/releases/latest').then(function (r) { return r.ok ? r.json() : null; }).then(function (rel) {
+    if (!rel) return;
+    var apk = (rel.assets || []).filter(function (a) { return /\.apk$/i.test(a.name); })[0];
+    if (apk) { ['dl-main', 'dl-big', 'dl-nav'].forEach(function (id) { document.getElementById(id).href = apk.browser_download_url; }); }
+    var mb = apk ? (apk.size / 1048576).toFixed(0) + ' MB' : '';
+    var date = rel.published_at ? new Date(rel.published_at).toLocaleDateString(lang) : '';
+    document.getElementById('ver-chip').textContent = rel.tag_name + ' · Apache 2.0';
+    var line = document.getElementById('ver-line');
+    line.insertAdjacentHTML('afterbegin', '<strong>' + rel.tag_name + '</strong>' + (mb ? ' · ' + mb : '') + (date ? ' · ' + date : '') + ' · ');
+  }).catch(function () {});
+})();
+</script>
+</body>
+</html>

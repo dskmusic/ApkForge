@@ -28,6 +28,8 @@ import com.dskmusic.apkforge.core.*;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class MainActivity extends Activity {
     private static final int REQ_ZIP = 1, REQ_FOLDER = 2, REQ_ICON = 3, REQ_SAVE = 4;
@@ -42,7 +44,7 @@ public class MainActivity extends Activity {
     private ImageView iconPreview;
     private CheckBox cbWebIcon, cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbViewport, cbFull, cbAwake, cbClean;
     private Spinner theme;
-    private Button genBtn;
+    private Button genBtn, zipBtn;
     private Uri zipUri, folderUri;
     private byte[] customIcon, webIcon;
     private boolean running = false;
@@ -201,9 +203,19 @@ public class MainActivity extends Activity {
         genBtn = Ui.button(this, "⚒  Generar APK", Ui.ACCENT);
         genBtn.setTextSize(17);
         genBtn.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { generate(); } });
+        LinearLayout genRow = new LinearLayout(this);
         LinearLayout.LayoutParams gl = new LinearLayout.LayoutParams(-1, Ui.dp(this, 54));
         gl.bottomMargin = Ui.dp(this, 14);
-        root.addView(genBtn, gl);
+        genRow.addView(genBtn, new LinearLayout.LayoutParams(0, -1, 2));
+        if (BuildConfig.GOOF) { // solo build local
+            zipBtn = Ui.button(this, "⬇ ZIP", Ui.CARD2);
+            zipBtn.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { downloadZip(); } });
+            LinearLayout.LayoutParams zl = new LinearLayout.LayoutParams(0, -1, 1);
+            zl.leftMargin = Ui.dp(this, 8);
+            genRow.addView(zipBtn, zl);
+            zipBtn.setVisibility(mode == Pipeline.Mode.GOOF ? View.VISIBLE : View.GONE);
+        }
+        root.addView(genRow, gl);
 
         // registro
         logView = Ui.text(this, "", 12, Ui.MUTED, false);
@@ -263,6 +275,7 @@ public class MainActivity extends Activity {
 
     private void selectMode(Pipeline.Mode m) {
         mode = m;
+        if (zipBtn != null) zipBtn.setVisibility(m == Pipeline.Mode.GOOF ? View.VISIBLE : View.GONE);
         for (Map.Entry<Pipeline.Mode, Button> e : chips.entrySet()) e.getValue().setBackground(Ui.round(e.getKey() == m ? Ui.ACCENT : Ui.CARD2, 12, this));
         srcBox.removeAllViews();
         Ui.gap(srcBox, 12);
@@ -473,6 +486,51 @@ public class MainActivity extends Activity {
             } catch (final Throwable e) {
                 ui.post(new Runnable() { public void run() { done(null, e); } });
             }
+        } }).start();
+    }
+
+    /** Descarga el juego de goof (enlace) y lo guarda como ZIP en Descargas. */
+    private void downloadZip() {
+        if (running) return;
+        final String lk = link.getText().toString().trim();
+        if (lk.length() == 0) { Ui.alert(this, "Falta el enlace", "Pega el enlace de goof.gg."); return; }
+        String nm0 = name.getText().toString().trim().replaceAll("[\\\\/:*?\"<>|]", "_");
+        final String zn = (nm0.length() == 0 ? "juego" : nm0) + ".zip";
+        running = true; genBtn.setEnabled(false); zipBtn.setEnabled(false);
+        logView.setText(""); resultCard.setVisibility(View.GONE);
+        new Thread(new Runnable() { public void run() {
+            String err = null;
+            File d = new File(getCacheDir(), "gzip"), z = new File(getCacheDir(), "gzip.zip");
+            try {
+                Files2.deleteTree(d); d.mkdirs();
+                Goof.fetchInto(d, lk, 200L << 20, 5000, new Logger() { public void log(String m) { MainActivity.this.log(m); } });
+                ZipOutputStream zo = new ZipOutputStream(new FileOutputStream(z));
+                try {
+                    for (String p : Files2.listFiles(d)) { zo.putNextEntry(new ZipEntry(p)); zo.write(Files2.readAll(new File(d, p))); zo.closeEntry(); }
+                } finally { zo.close(); }
+                android.content.ContentValues cv = new android.content.ContentValues();
+                cv.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, zn);
+                cv.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/zip");
+                OutputStream os;
+                if (Build.VERSION.SDK_INT >= 29) {
+                    cv.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS);
+                    Uri u = getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
+                    os = getContentResolver().openOutputStream(u);
+                } else { // ponytail: Android 8-9 necesita permiso de almacenamiento; no se pide aquí
+                    File dl = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                    dl.mkdirs();
+                    os = new FileOutputStream(new File(dl, zn));
+                }
+                try { os.write(Files2.readAll(z)); } finally { os.close(); }
+                log("Guardado en Descargas: " + zn);
+            } catch (Throwable e) { err = e.getMessage() == null ? e.toString() : e.getMessage(); }
+            finally { Files2.deleteTree(d); z.delete(); }
+            final String fe = err;
+            ui.post(new Runnable() { public void run() {
+                running = false; genBtn.setEnabled(true); zipBtn.setEnabled(true);
+                if (fe != null) Ui.alert(MainActivity.this, "Error", fe);
+                else Ui.alert(MainActivity.this, "ZIP guardado", "Descargas/" + zn);
+            } });
         } }).start();
     }
 
