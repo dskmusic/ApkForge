@@ -7,6 +7,9 @@ def ksFile = rootProject.file('keystore.properties')
 def ksProps = new Properties()
 if (ksFile.exists()) ksProps.load(new FileInputStream(ksFile))
 
+// Build publico (GitHub Actions pasa -PpublicBuild): sin goof y con el paquete limpio. Todo lo demas = build local.
+def publicBuild = project.hasProperty('publicBuild')
+
 def verProps = new Properties()
 rootProject.file('version.properties').withInputStream { verProps.load(it) }
 
@@ -19,11 +22,11 @@ android {
         minSdk 26
         targetSdk 34
         versionCode Integer.parseInt((project.findProperty('versionCode') ?: verProps['versionCode']).toString())
-        // Funciones de goof: solo en tu build local (con keystore.properties); el de GitHub no las incluye
-        buildConfigField 'boolean', 'GOOF', ksFile.exists().toString()
+        // Funciones de goof: solo en tu build local; el de GitHub (-PpublicBuild) no las incluye
+        buildConfigField 'boolean', 'GOOF', (!publicBuild).toString()
         // Build local: otro paquete y nombre, para poder tener instalados a la vez el local y el de GitHub
-        if (ksFile.exists()) applicationIdSuffix '.local'
-        manifestPlaceholders = [appLabel: ksFile.exists() ? 'ApkForge Local' : 'ApkForge']
+        if (!publicBuild) applicationIdSuffix '.local'
+        manifestPlaceholders = [appLabel: publicBuild ? 'ApkForge' : 'ApkForge Local']
         versionName project.findProperty('versionName') ?: verProps['versionName']
     }
 

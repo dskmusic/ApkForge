@@ -96,7 +96,7 @@ public class MainActivity extends Activity {
         LinearLayout c1 = Ui.card(this);
         c1.addView(Ui.text(this, "1 · Origen", 16, Ui.TEXT, true));
         LinearLayout chipRow = Ui.row(this);
-        // BuildConfig.GOOF solo es true en tu build local (con keystore.properties); el de GitHub no incluye goof.
+        // BuildConfig.GOOF solo es true en tu build local (sin -PpublicBuild); el de GitHub no incluye goof.
         String[] labels = BuildConfig.GOOF ? new String[]{"ZIP / APK", "Carpeta", "Enlace goof", "Web"} : new String[]{"ZIP / APK", "Carpeta", "Web"};
         Pipeline.Mode[] modes = BuildConfig.GOOF ? new Pipeline.Mode[]{Pipeline.Mode.ZIP, Pipeline.Mode.FOLDER, Pipeline.Mode.GOOF, Pipeline.Mode.WEB} : new Pipeline.Mode[]{Pipeline.Mode.ZIP, Pipeline.Mode.FOLDER, Pipeline.Mode.WEB};
         for (int i = 0; i < modes.length; i++) {

@@ -51,7 +51,7 @@ jobs:
       - name: Build (debug signature)
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease -PversionName=${{ steps.ver.outputs.name }} -PversionCode=${{ github.run_number }} --no-daemon
+          ./gradlew assembleRelease -PpublicBuild -PversionName=${{ steps.ver.outputs.name }} -PversionCode=${{ github.run_number }} --no-daemon
 
       - name: Prepare APK
         run: |
