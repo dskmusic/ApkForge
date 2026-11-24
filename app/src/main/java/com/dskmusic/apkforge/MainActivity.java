@@ -88,7 +88,7 @@ public class MainActivity extends Activity {
         gear.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { startActivity(new Intent(MainActivity.this, SettingsActivity.class)); } });
         head.addView(gear);
         root.addView(head);
-        TextView sub = Ui.text(this, "Convierte tu web, juego o enlace en un APK firmado, sin Android Studio.", 13, Ui.MUTED, false);
+        TextView sub = Ui.text(this, BuildConfig.GOOF ? "Convierte tu web, juego o enlace en un APK firmado, sin Android Studio." : "Convierte tu web o tu proyecto HTML en un APK firmado, sin Android Studio.", 13, Ui.MUTED, false);
         sub.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 16));
         root.addView(sub);
 
@@ -96,16 +96,17 @@ public class MainActivity extends Activity {
         LinearLayout c1 = Ui.card(this);
         c1.addView(Ui.text(this, "1 · Origen", 16, Ui.TEXT, true));
         LinearLayout chipRow = Ui.row(this);
-        String[] labels = {"ZIP / APK", "Carpeta", "Enlace goof", "Web"};
-        Pipeline.Mode[] modes = {Pipeline.Mode.ZIP, Pipeline.Mode.FOLDER, Pipeline.Mode.GOOF, Pipeline.Mode.WEB};
-        for (int i = 0; i < 4; i++) {
+        // BuildConfig.GOOF solo es true en tu build local (con keystore.properties); el de GitHub no incluye goof.
+        String[] labels = BuildConfig.GOOF ? new String[]{"ZIP / APK", "Carpeta", "Enlace goof", "Web"} : new String[]{"ZIP / APK", "Carpeta", "Web"};
+        Pipeline.Mode[] modes = BuildConfig.GOOF ? new Pipeline.Mode[]{Pipeline.Mode.ZIP, Pipeline.Mode.FOLDER, Pipeline.Mode.GOOF, Pipeline.Mode.WEB} : new Pipeline.Mode[]{Pipeline.Mode.ZIP, Pipeline.Mode.FOLDER, Pipeline.Mode.WEB};
+        for (int i = 0; i < modes.length; i++) {
             final Pipeline.Mode m = modes[i];
             Button bt = Ui.button(this, labels[i], Ui.CARD2);
             bt.setTextSize(12.5f);
             bt.setPadding(Ui.dp(this, 4), Ui.dp(this, 10), Ui.dp(this, 4), Ui.dp(this, 10));
             bt.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { selectMode(m); } });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
-            lp.rightMargin = i < 3 ? Ui.dp(this, 6) : 0;
+            lp.rightMargin = i < modes.length - 1 ? Ui.dp(this, 6) : 0;
             chipRow.addView(bt, lp);
             chips.put(m, bt);
         }
@@ -166,7 +167,7 @@ public class MainActivity extends Activity {
         // opciones
         LinearLayout c4 = Ui.card(this);
         c4.addView(Ui.text(this, "4 · Opciones", 16, Ui.TEXT, true));
-        cbClean = Ui.check(this, "Quitar splash y aviso de dominio de goof", true);
+        cbClean = Ui.check(this, "Quitar splash y aviso de dominio de goof", BuildConfig.GOOF);
         cbPortrait = Ui.check(this, "Permitir modo vertical", true);
         cbLandscape = Ui.check(this, "Permitir modo horizontal", false);
         cbSelect = Ui.check(this, "Selección de texto (pulsación larga)", false);
@@ -175,7 +176,7 @@ public class MainActivity extends Activity {
         cbFull = Ui.check(this, "Pantalla completa (oculta barras)", true);
         cbAwake = Ui.check(this, "Mantener pantalla encendida", false);
         cbViewport = Ui.check(this, "Adaptar a móvil si la web no lo está", true);
-        for (CheckBox cb : new CheckBox[]{cbClean, cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbFull, cbAwake, cbViewport}) c4.addView(cb);
+        for (CheckBox cb : BuildConfig.GOOF ? new CheckBox[]{cbClean, cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbFull, cbAwake, cbViewport} : new CheckBox[]{cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbFull, cbAwake, cbViewport}) c4.addView(cb);
         c4.addView(Ui.label(this, "Tema"));
         theme = new Spinner(this);
         ArrayAdapter<String> ad = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"Oscuro (por defecto)", "Claro", "Según el sistema"});
@@ -259,7 +260,7 @@ public class MainActivity extends Activity {
             Button b = Ui.button(this, "Elegir ZIP o APK…", Ui.CARD2);
             b.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { pick("*/*", REQ_ZIP, false); } });
             srcBox.addView(b); Ui.gap(srcBox, 6); srcBox.addView(zipName);
-            srcBox.addView(Ui.text(this, "Con index.html en la raíz del ZIP (o dentro de una carpeta). También vale el .apk de goof. Funciona sin conexión.", 12, Ui.MUTED, false));
+            srcBox.addView(Ui.text(this, "Con index.html en la raíz del ZIP (o dentro de una carpeta)." + (BuildConfig.GOOF ? " También vale el .apk de goof." : "") + " Funciona sin conexión.", 12, Ui.MUTED, false));
         } else if (m == Pipeline.Mode.FOLDER) {
             Button b = Ui.button(this, "Elegir carpeta…", Ui.CARD2);
             b.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), REQ_FOLDER); } });

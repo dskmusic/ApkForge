@@ -19,8 +19,12 @@ android {
         minSdk 26
         targetSdk 34
         versionCode Integer.parseInt((project.findProperty('versionCode') ?: verProps['versionCode']).toString())
+        // Funciones de goof: solo en tu build local (con keystore.properties); el de GitHub no las incluye
+        buildConfigField 'boolean', 'GOOF', ksFile.exists().toString()
         versionName project.findProperty('versionName') ?: verProps['versionName']
     }
+
+    buildFeatures { buildConfig true }
 
     signingConfigs {
         if (ksFile.exists()) {
