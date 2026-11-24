@@ -38,7 +38,7 @@ final class EasterEgg {
         private static final String GLYPHS = "01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉ<>{}[]()/=+*#$%&;:?!_";
         private static final String MSG_A = "MADE WITH", MSG_B = "BY DSK";
         private static final int TRAIL = 14;
-        private static final int GREEN = Color.rgb(0, 255, 90), LIGHT = Color.rgb(190, 255, 200);
+        private static final int GREEN = Color.rgb(70, 255, 70), LIGHT = Color.rgb(110, 255, 100);
         private final Random rnd = new Random();
         private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG), t = new Paint(Paint.ANTI_ALIAS_FLAG), box = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path heart = new Path();
@@ -52,7 +52,8 @@ final class EasterEgg {
             super(c);
             setBackgroundColor(Color.BLACK);
             p.setTypeface(Typeface.MONOSPACE);
-            t.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+            t.setTypeface(Typeface.create("serif-monospace", Typeface.BOLD));   // aspecto de máquina de escribir
+            t.setLetterSpacing(0.07f);
             heart.moveTo(0, 0.45f);
             heart.cubicTo(-0.95f, -0.15f, -0.5f, -0.85f, 0, -0.35f);
             heart.cubicTo(0.5f, -0.85f, 0.95f, -0.15f, 0, 0.45f);
@@ -100,34 +101,34 @@ final class EasterEgg {
             float W = getWidth(), H = getHeight(), sec = (System.nanoTime() - t0) / 1e9f;
 
             // tamaño del texto: que quepa en el recuadro (con margen) y no pase de un tamaño agradable
-            float boxW = W * 0.78f;
+            float boxW = W * 0.9f;
             t.setTextSize(100);
             float total100 = t.measureText(MSG_A + " ") + 100 * 1.0f + t.measureText(" " + MSG_B);
-            float size = Math.min(100 * (boxW - Ui.dp(getContext(), 40)) / total100, Ui.dp(getContext(), 30));
+            float size = Math.min(100 * (boxW - Ui.dp(getContext(), 36)) / total100, Ui.dp(getContext(), 34));
             t.setTextSize(size);
             float wA = t.measureText(MSG_A + " "), hw = size * 1.0f, wB = t.measureText(" " + MSG_B);
-            float bw = wA + hw + wB + Ui.dp(getContext(), 40), bh = size * 2.3f;
+            float bw = wA + hw + wB + Ui.dp(getContext(), 36), bh = size * 2.0f;
             float bx = (W - bw) / 2f, by = (H - bh) / 2f, cy = H / 2f + size * 0.33f;
 
-            // recuadro estilo "system failure": fondo verde oscuro, borde doble
-            box.setStyle(Paint.Style.FILL); box.setColor(Color.argb(238, 0, 40, 22));
+            // recuadro estilo "system failure": fondo casi negro verdoso, borde verde brillante con halo y líneas de barrido CRT
+            box.setStyle(Paint.Style.FILL); box.setColor(Color.argb(245, 0, 26, 10));
             c.drawRect(bx, by, bx + bw, by + bh, box);
-            box.setStyle(Paint.Style.STROKE); box.setStrokeWidth(Ui.dp(getContext(), 2));
-            box.setColor(Color.rgb(160, 205, 175)); c.drawRect(bx, by, bx + bw, by + bh, box);
-            box.setStrokeWidth(Ui.dp(getContext(), 1)); box.setColor(Color.argb(180, 0, 255, 90));
-            float in = Ui.dp(getContext(), 5); c.drawRect(bx + in, by + in, bx + bw - in, by + bh - in, box);
+            box.setColor(Color.argb(38, 0, 0, 0));
+            for (float yy = by; yy < by + bh; yy += Ui.dp(getContext(), 3)) c.drawRect(bx, yy, bx + bw, yy + Ui.dp(getContext(), 1), box);
+            box.setStyle(Paint.Style.STROKE); box.setStrokeWidth(Ui.dp(getContext(), 2.5f));
+            box.setColor(Color.rgb(120, 255, 110)); box.setShadowLayer(Ui.dp(getContext(), 6), 0, 0, Color.argb(200, 60, 255, 60));
+            c.drawRect(bx, by, bx + bw, by + bh, box);
+            box.clearShadowLayer();
 
             String all = MSG_A + " ♥ " + MSG_B;   // solo para contar letras
             int shown = Math.min(all.length(), (int) (sec * 12));
             float x0 = bx + (bw - (wA + hw + wB)) / 2f;
             boolean done = shown == all.length();
             int step = (int) (sec * 10);
-            if (done && (step % 17 == 0 || step % 29 == 0)) {   // glitch: texto desdoblado
-                float j = size * 0.08f + rnd.nextFloat() * size * 0.08f;
-                line(c, x0 - j, cy, size, shown, Color.argb(190, 255, 0, 60), 1f);
-                line(c, x0 + j, cy, size, shown, Color.argb(190, 0, 230, 255), 1f);
-            }
-            line(c, x0, cy, size, shown, LIGHT, 1f + 0.16f * (float) Math.sin(sec * 6));
+            boolean flick = done && (step % 17 == 0 || step % 29 == 0);   // parpadeo de monitor antiguo
+            if (flick) x0 += rnd.nextInt(5) - 2;
+            int col = flick ? Color.argb(150 + rnd.nextInt(60), 110, 255, 100) : LIGHT;
+            line(c, x0, cy, size, shown, col, 1f + 0.12f * (float) Math.sin(sec * 6));
             // cursor parpadeante tras lo escrito
             if (!done || ((int) (sec * 2)) % 2 == 0) {
                 float cx = x0 + width(shown, wA, hw, wB, MSG_A, MSG_B);
@@ -150,7 +151,7 @@ final class EasterEgg {
         private void line(Canvas c, float x, float y, float size, int shown, int color, float heartScale) {
             String a = MSG_A + " ", b = " " + MSG_B;
             int na = a.length();
-            t.setColor(color); t.setShadowLayer(size * 0.25f, 0, 0, Color.argb(160, 0, 255, 90));
+            t.setColor(color); t.setShadowLayer(size * 0.38f, 0, 0, Color.argb(220, 40, 255, 40));
             c.drawText(a, 0, Math.min(shown, na), x, y, t);
             float wA = t.measureText(a), hw = size;
             if (shown > na) {
@@ -158,7 +159,7 @@ final class EasterEgg {
                 c.translate(x + wA + hw / 2f, y - size * 0.32f);
                 float s = size * 0.52f * heartScale; c.scale(s, s);
                 Paint hp = new Paint(Paint.ANTI_ALIAS_FLAG);
-                hp.setColor(color == LIGHT ? GREEN : color); hp.setShadowLayer(0.3f, 0, 0, Color.argb(200, 0, 255, 90));
+                hp.setColor(color); hp.setShadowLayer(0.5f, 0, 0, Color.argb(220, 40, 255, 40));
                 c.drawPath(heart, hp);
                 c.restore();
                 if (shown > na + 1) c.drawText(b, 0, Math.min(b.length(), shown - na - 1), x + wA + hw, y, t);
