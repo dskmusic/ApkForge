@@ -9,6 +9,7 @@ import android.view.Window;
 import android.widget.*;
 
 import com.dskmusic.apkforge.core.Jks;
+import com.dskmusic.apkforge.core.Lang;
 
 import java.util.List;
 
@@ -24,6 +25,7 @@ public class SettingsActivity extends Activity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         prefs = new Prefs(this); store = new KeystoreStore(this);
+        Prefs.applyLang(this);
         Window w = getWindow(); w.setStatusBarColor(Ui.BG); w.setNavigationBarColor(Ui.BG);
         ScrollView sv = new ScrollView(this); sv.setBackgroundColor(Ui.BG);
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
@@ -33,6 +35,25 @@ public class SettingsActivity extends Activity {
 
         root.addView(Ui.text(this, "Ajustes", 24, Ui.TEXT, true));
         Ui.gap(root, 14);
+
+        LinearLayout lc = Ui.card(this);
+        lc.addView(Ui.text(this, "Idioma", 16, Ui.TEXT, true));
+        final String[] codes = {"auto", "es", "en"};
+        Spinner lang = new Spinner(this);
+        lang.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{Lang.t("Automático (sistema)"), "Español", "English"}));
+        lang.setBackground(Ui.round(Ui.CARD2, 10, this));
+        int cur = java.util.Arrays.asList(codes).indexOf(prefs.lang());
+        lang.setSelection(Math.max(0, cur));
+        lang.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
+                if (codes[pos].equals(prefs.lang())) return;
+                prefs.setLang(codes[pos]); Prefs.applyLang(SettingsActivity.this); recreate();
+            }
+            public void onNothingSelected(AdapterView<?> p) { }
+        });
+        Ui.gap(lc, 8);
+        lc.addView(lang);
+        root.addView(lc);
 
         LinearLayout c = Ui.card(this);
         c.addView(Ui.text(this, "Firma (keystore)", 16, Ui.TEXT, true));
@@ -81,7 +102,7 @@ public class SettingsActivity extends Activity {
             prefs.saveKeystore(alias.getText().toString().trim(), sp.getText().toString(), kp.getText().toString(), pf);
             Ui.alert(this, "Guardado", "Keystore correcto. Certificado: " + e.chain.get(0).getSubjectX500Principal().getName());
         } catch (Exception e) {
-            Ui.alert(this, "No se pudo abrir el keystore", String.valueOf(e.getMessage()) + "\n\nNo se ha guardado la contraseña.");
+            Ui.alert(this, "No se pudo abrir el keystore", Lang.t(String.valueOf(e.getMessage())) + Lang.t("\n\nNo se ha guardado la contraseña."));
         }
     }
 

@@ -24,6 +24,7 @@
 - App name, package, version, icon (custom, site favicon or default), orientation, fullscreen, theme…
 - **Install**, **Share** (one or several) or **Save as…** from the list of generated APKs.
 - Everything runs on the device: no server.
+- **English / Spanish**: automatic (Spanish if your phone is in Spanish, English otherwise), changeable in **Settings → Language**.
 
 ## 📥 Install
 

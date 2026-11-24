@@ -50,13 +50,14 @@ public final class Installer {
     public static final class Receiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context c, Intent i) {
+            Prefs.applyLang(c);
             int st = i.getIntExtra(PackageInstaller.EXTRA_STATUS, -1);
             if (st == PackageInstaller.STATUS_PENDING_USER_ACTION) {
                 Intent confirm = (Intent) i.getParcelableExtra(Intent.EXTRA_INTENT);
                 if (confirm != null) { confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); c.startActivity(confirm); }
             } else if (st != PackageInstaller.STATUS_SUCCESS) {
                 String m = i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
-                android.widget.Toast.makeText(c, "Instalación: " + (m == null ? "error " + st : m), android.widget.Toast.LENGTH_LONG).show();
+                android.widget.Toast.makeText(c, com.dskmusic.apkforge.core.Lang.t("Instalación: ") + (m == null ? "error " + st : m), android.widget.Toast.LENGTH_LONG).show();
             }
         }
     }

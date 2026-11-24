@@ -46,6 +46,7 @@ public class MainActivity extends Activity {
     private Uri zipUri, folderUri;
     private byte[] customIcon, webIcon;
     private boolean running = false;
+    private String builtLang;
     private File lastApk, pendingSave;
     private final Set<String> selected = new HashSet<String>();
 
@@ -55,6 +56,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         prefs = new Prefs(this);
+        Prefs.applyLang(this); builtLang = prefs.lang();
         Window w = getWindow();
         w.setStatusBarColor(Ui.BG); w.setNavigationBarColor(Ui.BG);
         ScrollView sv = new ScrollView(this);
@@ -179,7 +181,7 @@ public class MainActivity extends Activity {
         for (CheckBox cb : BuildConfig.GOOF ? new CheckBox[]{cbClean, cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbFull, cbAwake, cbViewport} : new CheckBox[]{cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbFull, cbAwake, cbViewport}) c4.addView(cb);
         c4.addView(Ui.label(this, "Tema"));
         theme = new Spinner(this);
-        ArrayAdapter<String> ad = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"Oscuro (por defecto)", "Claro", "Según el sistema"});
+        ArrayAdapter<String> ad = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{Lang.t("Oscuro (por defecto)"), Lang.t("Claro"), Lang.t("Según el sistema")});
         theme.setAdapter(ad);
         theme.setBackground(Ui.round(Ui.CARD2, 10, this));
         c4.addView(theme);
@@ -260,7 +262,7 @@ public class MainActivity extends Activity {
             Button b = Ui.button(this, "Elegir ZIP o APK…", Ui.CARD2);
             b.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { pick("*/*", REQ_ZIP, false); } });
             srcBox.addView(b); Ui.gap(srcBox, 6); srcBox.addView(zipName);
-            srcBox.addView(Ui.text(this, "Con index.html en la raíz del ZIP (o dentro de una carpeta)." + (BuildConfig.GOOF ? " También vale el .apk de goof." : "") + " Funciona sin conexión.", 12, Ui.MUTED, false));
+            srcBox.addView(Ui.text(this, Lang.t("Con index.html en la raíz del ZIP (o dentro de una carpeta).") + (BuildConfig.GOOF ? Lang.t(" También vale el .apk de goof.") : "") + Lang.t(" Funciona sin conexión."), 12, Ui.MUTED, false));
         } else if (m == Pipeline.Mode.FOLDER) {
             Button b = Ui.button(this, "Elegir carpeta…", Ui.CARD2);
             b.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), REQ_FOLDER); } });
@@ -283,12 +285,12 @@ public class MainActivity extends Activity {
 
     private void updateIcon() {
         byte[] b = customIcon != null ? customIcon : null;
-        if (b != null) { iconPreview.setImageBitmap(BitmapFactory.decodeByteArray(b, 0, b.length)); iconInfo.setText("Icono propio"); }
-        else if (webIcon != null) { iconPreview.setImageBitmap(BitmapFactory.decodeByteArray(webIcon, 0, webIcon.length)); iconInfo.setText("Icono de la web (si no eliges otro)"); }
+        if (b != null) { iconPreview.setImageBitmap(BitmapFactory.decodeByteArray(b, 0, b.length)); iconInfo.setText(Lang.t("Icono propio")); }
+        else if (webIcon != null) { iconPreview.setImageBitmap(BitmapFactory.decodeByteArray(webIcon, 0, webIcon.length)); iconInfo.setText(Lang.t("Icono de la web (si no eliges otro)")); }
         else {
             int rid = getResources().getIdentifier("default_icon", "drawable", getPackageName());
             if (rid != 0) iconPreview.setImageResource(rid); else iconPreview.setImageDrawable(null);
-            iconInfo.setText("Por defecto (DSK Apps)");
+            iconInfo.setText(Lang.t("Por defecto (DSK Apps)"));
         }
     }
 
@@ -321,7 +323,7 @@ public class MainActivity extends Activity {
                 InputStream in = new FileInputStream(pendingSave);
                 OutputStream out = getContentResolver().openOutputStream(u);
                 try { byte[] b = new byte[65536]; int n; while ((n = in.read(b)) >= 0) out.write(b, 0, n); } finally { in.close(); out.close(); }
-                Toast.makeText(this, "Guardado", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, Lang.t("Guardado"), Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) { Ui.alert(this, "Error", String.valueOf(e.getMessage())); }
     }
@@ -338,13 +340,13 @@ public class MainActivity extends Activity {
     private void fetchWebIcon() {
         final String u = webUrl.getText().toString().trim();
         if (u.length() == 0) { Ui.alert(this, "Icono", "Escribe primero la URL de la web"); return; }
-        iconInfo.setText("Buscando icono…");
+        iconInfo.setText(Lang.t("Buscando icono…"));
         new Thread(new Runnable() { public void run() {
             IconFetch.Result r = null; String err = null;
             try { r = IconFetch.find(u); } catch (Exception e) { err = e.getMessage(); }
             final IconFetch.Result rr = r; final String ee = err;
             ui.post(new Runnable() { public void run() {
-                if (rr == null) { webIcon = null; updateIcon(); Ui.alert(MainActivity.this, "Icono", "No se encontró icono" + (ee != null ? " (" + ee + ")" : "") + ". Se usará el tuyo o el de por defecto."); }
+                if (rr == null) { webIcon = null; updateIcon(); Ui.alert(MainActivity.this, "Icono", "No se encontró icono" + (ee != null ? " (" + Lang.t(ee) + ")" : "") + ". Se usará el tuyo o el de por defecto."); }
                 else if (!rr.good) { webIcon = null; updateIcon(); Ui.alert(MainActivity.this, "Icono", "El icono de la web es de baja calidad (" + rr.size + " px < 128). Se usará el tuyo o el de por defecto."); }
                 else { webIcon = rr.png; updateIcon(); }
             } });
@@ -356,7 +358,7 @@ public class MainActivity extends Activity {
         ui.post(new Runnable() { public void run() {
             ((View) logView.getParent()).setVisibility(View.VISIBLE);
             logView.setVisibility(View.VISIBLE);
-            logView.append(s + "\n");
+            logView.append(Lang.t(s) + "\n");
         } });
     }
 
@@ -373,7 +375,7 @@ public class MainActivity extends Activity {
                     new Runnable() { public void run() { startActivity(new Intent(MainActivity.this, SettingsActivity.class)); } });
             return;
         }
-        running = true; genBtn.setEnabled(false); genBtn.setText("Generando…");
+        running = true; genBtn.setEnabled(false); genBtn.setText(Lang.t("Generando…"));
         logView.setText(""); resultCard.setVisibility(View.GONE);
 
         final Pipeline.Request r = new Pipeline.Request();
@@ -430,16 +432,16 @@ public class MainActivity extends Activity {
     private boolean zipFileExists(Pipeline.Request r) { return r.zipFile != null && r.zipFile.exists(); }
 
     private void done(File apk, Throwable err) {
-        running = false; genBtn.setEnabled(true); genBtn.setText("⚒  Generar APK");
+        running = false; genBtn.setEnabled(true); genBtn.setText(Lang.t("⚒  Generar APK"));
         if (err != null) {
             String m = err.getMessage() == null ? err.toString() : err.getMessage();
-            if (m.contains("Password verification") || m.toLowerCase(Locale.ROOT).contains("contraseña"))
+            if (m.contains("Password verification") || m.toLowerCase(Locale.ROOT).contains("contraseña") || m.toLowerCase(Locale.ROOT).contains("password"))
                 m += "\n\nRevisa la contraseña y el alias del keystore en Ajustes.";
             Ui.alert(this, "Error", m);
             return;
         }
         lastApk = apk;
-        resName.setText("✔ " + apk.getName() + " listo (" + fmt(apk.length()) + ")");
+        resName.setText(Lang.t("✔ " + apk.getName() + " listo (" + fmt(apk.length()) + ")"));
         resultCard.setVisibility(View.VISIBLE);
         refreshList();
         Ui.choose(this, "APK listo", new String[]{"Instalar", "Compartir", "Cerrar"}, new int[]{Ui.ACCENT, Ui.CARD2, Ui.CARD2},
@@ -462,7 +464,7 @@ public class MainActivity extends Activity {
     private void resetForm() {
         name.setText(""); pkg.setText(""); vname.setText("1.0"); vcode.setText(""); link.setText(""); webUrl.setText("");
         zipUri = null; folderUri = null; customIcon = null; webIcon = null; lastApk = null;
-        zipName.setText("Ningún archivo elegido"); folderName.setText("Ninguna carpeta elegida");
+        zipName.setText(Lang.t("Ningún archivo elegido")); folderName.setText(Lang.t("Ninguna carpeta elegida"));
         resultCard.setVisibility(View.GONE); logView.setText(""); ((View) logView.getParent()).setVisibility(View.GONE);
         updateIcon();
     }
@@ -554,6 +556,11 @@ public class MainActivity extends Activity {
         if (us.size() == 1) i.putExtra(Intent.EXTRA_STREAM, us.get(0)); else i.putParcelableArrayListExtra(Intent.EXTRA_STREAM, us);
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivity(Intent.createChooser(i, "Compartir"));
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (!prefs.lang().equals(builtLang)) recreate();   // idioma cambiado en Ajustes: se reconstruye la pantalla
     }
 
     @Override public void onConfigurationChanged(Configuration c) { super.onConfigurationChanged(c); }

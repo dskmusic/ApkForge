@@ -12,6 +12,8 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 
+import com.dskmusic.apkforge.core.Lang;
+
 /** Componentes visuales (tema oscuro moderno) creados por código. */
 final class Ui {
     static final int BG = 0xFF0D1017, CARD = 0xFF171C27, CARD2 = 0xFF1F2636, LINE = 0xFF2A3347, TEXT = 0xFFE8EBF2, MUTED = 0xFF8D96AB, ACCENT = 0xFF4F8CFF, RED = 0xFFC0453F;
@@ -38,7 +40,7 @@ final class Ui {
 
     static TextView text(Context c, String s, float sp, int color, boolean bold) {
         TextView t = new TextView(c);
-        t.setText(s); t.setTextSize(sp); t.setTextColor(color);
+        t.setText(Lang.t(s)); t.setTextSize(sp); t.setTextColor(color);
         if (bold) t.setTypeface(Typeface.DEFAULT_BOLD);
         return t;
     }
@@ -51,7 +53,7 @@ final class Ui {
 
     static EditText edit(Context c, String hint) {
         EditText e = new EditText(c);
-        e.setHint(hint); e.setHintTextColor(0xFF5B6479); e.setTextColor(TEXT); e.setTextSize(15);
+        e.setHint(Lang.t(hint)); e.setHintTextColor(0xFF5B6479); e.setTextColor(TEXT); e.setTextSize(15);
         e.setSingleLine(true); e.setInputType(InputType.TYPE_CLASS_TEXT);
         e.setBackground(round(CARD2, 10, c));
         int p = dp(c, 12);
@@ -61,7 +63,7 @@ final class Ui {
 
     static Button button(Context c, String s, int color) {
         Button b = new Button(c);
-        b.setText(s); b.setAllCaps(false); b.setTextColor(Color.WHITE); b.setTextSize(14.5f); b.setTypeface(Typeface.DEFAULT_BOLD);
+        b.setText(Lang.t(s)); b.setAllCaps(false); b.setTextColor(Color.WHITE); b.setTextSize(14.5f); b.setTypeface(Typeface.DEFAULT_BOLD);
         b.setBackground(round(color, 12, c));
         b.setStateListAnimator(null);
         int p = dp(c, 14);
@@ -82,7 +84,7 @@ final class Ui {
 
     static CheckBox check(Context c, String s, boolean on) {
         CheckBox cb = new CheckBox(c);
-        cb.setText(s); cb.setTextColor(TEXT); cb.setTextSize(14.5f); cb.setChecked(on);
+        cb.setText(Lang.t(s)); cb.setTextColor(TEXT); cb.setTextSize(14.5f); cb.setChecked(on);
         cb.setButtonTintList(ColorStateList.valueOf(ACCENT));
         return cb;
     }
@@ -108,7 +110,7 @@ final class Ui {
         box.setBackground(round(CARD, 22, a));
         int p = dp(a, 22);
         box.setPadding(p, p, p, dp(a, 16));
-        box.addView(text(a, title, 19, TEXT, true));
+        box.addView(text(a, title, 19, TEXT, true));  // text() ya traduce
         if (msg != null) { TextView m = text(a, msg, 14.5f, MUTED, false); m.setLineSpacing(0, 1.15f); m.setPadding(0, dp(a, 10), 0, 0); box.addView(m); }
         if (body != null) box.addView(body);
         d.setContentView(box);
@@ -130,12 +132,13 @@ final class Ui {
         LinearLayout row = row(a);
         row.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         row.setPadding(0, dp(a, 18), 0, 0);
+        final String okTxt = ok;
         android.app.Dialog d = show(a, title, msg, row);
         if (cancel != null) {
             row.addView(dlgBtn(a, d, cancel, CARD2, null));
             row.addView(new Space(a), new LinearLayout.LayoutParams(dp(a, 8), 1));
         }
-        row.addView(dlgBtn(a, d, ok, ok.equals("Borrar") ? RED : ACCENT, onOk));
+        row.addView(dlgBtn(a, d, ok, okTxt.equals("Borrar") ? RED : ACCENT, onOk));
     }
 
     /** Lista de acciones apiladas; colors[i] = color del botón i, acts[i] puede ser null. */

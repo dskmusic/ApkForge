@@ -24,6 +24,7 @@
 - Nombre, paquete, versión, icono (propio, favicon de la web o por defecto), orientación, pantalla completa, tema…
 - **Instalar**, **Compartir** (uno o varios) o **Guardar como…** desde la lista de APKs generados.
 - Todo en el propio dispositivo: sin servidor.
+- **Español / Inglés**: automático (español si el móvil está en español, inglés si no), cambiable en **Ajustes → Idioma**.
 
 ## 📥 Instalación
 
