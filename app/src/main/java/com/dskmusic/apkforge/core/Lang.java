@@ -135,6 +135,7 @@ public final class Lang {
 
         // ---- ajustes
         a("Ajustes", "Settings");
+        a("Ayuda", "Help");
         a("Idioma", "Language");
         a("Automático (sistema)", "Automatic (system)");
         a("Firma (keystore)", "Signing (keystore)");

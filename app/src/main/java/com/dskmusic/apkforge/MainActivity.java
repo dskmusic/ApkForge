@@ -86,9 +86,14 @@ public class MainActivity extends Activity {
         TextView t = Ui.text(this, "ApkForge", 24, Ui.TEXT, true);
         t.setPadding(Ui.dp(this, 12), 0, 0, 0);
         head.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
-        Button gear = Ui.button(this, "⚙ Ajustes", Ui.CARD2);
+        ImageButton help = Ui.iconButton(this, R.drawable.ic_help, Ui.CARD2);
+        help.setContentDescription(Lang.t("Ayuda"));
+        help.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { startActivity(new Intent(MainActivity.this, HelpActivity.class)); } });
+        ImageButton gear = Ui.iconButton(this, R.drawable.ic_settings, Ui.CARD2);
+        gear.setContentDescription(Lang.t("Ajustes"));
         gear.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { startActivity(new Intent(MainActivity.this, SettingsActivity.class)); } });
-        head.addView(gear);
+        LinearLayout.LayoutParams hl = new LinearLayout.LayoutParams(-2, Ui.dp(this, 42)); hl.rightMargin = Ui.dp(this, 8);
+        head.addView(help, hl); head.addView(gear, new LinearLayout.LayoutParams(-2, Ui.dp(this, 42)));
         root.addView(head);
         TextView sub = Ui.text(this, BuildConfig.GOOF ? "Convierte tu web, juego o enlace en un APK firmado, sin Android Studio." : "Convierte tu web o tu proyecto HTML en un APK firmado, sin Android Studio.", 13, Ui.MUTED, false);
         sub.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 16));
