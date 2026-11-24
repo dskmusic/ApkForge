@@ -13,9 +13,8 @@ import java.io.FileNotFoundException;
 
 /** Sirve (solo lectura) los APK de filesDir/apks para compartirlos; sin androidx. */
 public final class ApkShare extends ContentProvider {
-    static final String AUTH = "com.dskmusic.apkforge.share";
-
-    static Uri uriFor(File f) { return Uri.parse("content://" + AUTH + "/" + Uri.encode(f.getName())); }
+    // la autoridad lleva el applicationId (build local y de GitHub conviven sin chocar)
+    static Uri uriFor(android.content.Context c, File f) { return Uri.parse("content://" + c.getPackageName() + ".share/" + Uri.encode(f.getName())); }
 
     private File file(Uri u) throws FileNotFoundException {
         String n = u.getLastPathSegment();

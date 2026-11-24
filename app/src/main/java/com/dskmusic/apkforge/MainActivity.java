@@ -548,7 +548,7 @@ public class MainActivity extends Activity {
 
     private void share(List<File> fs) {
         ArrayList<Uri> us = new ArrayList<Uri>();
-        for (File f : fs) us.add(ApkShare.uriFor(f));
+        for (File f : fs) us.add(ApkShare.uriFor(this, f));
         Intent i = new Intent(us.size() == 1 ? Intent.ACTION_SEND : Intent.ACTION_SEND_MULTIPLE);
         i.setType("application/vnd.android.package-archive");
         if (us.size() == 1) i.putExtra(Intent.EXTRA_STREAM, us.get(0)); else i.putParcelableArrayListExtra(Intent.EXTRA_STREAM, us);
