@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
         // cabecera
         LinearLayout head = Ui.row(this);
         ImageView logo = new ImageView(this);
-        int rid = getResources().getIdentifier("ic_launcher", "mipmap", getPackageName());
+        int rid = getResources().getIdentifier("ic_logo", "drawable", getPackageName());
         if (rid != 0) logo.setImageResource(rid);
         head.addView(logo, new LinearLayout.LayoutParams(Ui.dp(this, 46), Ui.dp(this, 46)));
         TextView t = Ui.text(this, "ApkForge", 24, Ui.TEXT, true);
@@ -121,6 +121,8 @@ public class MainActivity extends Activity {
         folderName = Ui.text(this, "Ninguna carpeta elegida", 13, Ui.MUTED, false);
         link = Ui.edit(this, "https://goof.gg/game/…");
         webUrl = Ui.edit(this, "https://midominio.com/mi-app/");
+        link.addTextChangedListener(new SuggestWatcher(false));
+        webUrl.addTextChangedListener(new SuggestWatcher(true));
         root.addView(c1);
 
         // datos
@@ -308,8 +310,8 @@ public class MainActivity extends Activity {
         if (res != RESULT_OK || data == null || data.getData() == null) return;
         Uri u = data.getData();
         try {
-            if (req == REQ_ZIP) { zipUri = u; zipName.setText(displayName(u)); if (name.getText().length() == 0) name.setText(stripExt(displayName(u))); }
-            else if (req == REQ_FOLDER) { folderUri = u; folderName.setText(Uri.decode(u.getLastPathSegment() == null ? u.toString() : u.getLastPathSegment())); }
+            if (req == REQ_ZIP) { zipUri = u; zipName.setText(displayName(u)); suggestName(pretty(stripExt(displayName(u)))); }
+            else if (req == REQ_FOLDER) { folderUri = u; String fl = Uri.decode(u.getLastPathSegment() == null ? u.toString() : u.getLastPathSegment()); folderName.setText(fl); suggestName(pretty(fl.substring(Math.max(fl.lastIndexOf('/'), fl.lastIndexOf(':')) + 1))); }
             else if (req == REQ_ICON) {
                 InputStream in = getContentResolver().openInputStream(u);
                 ByteArrayOutputStream bo = new ByteArrayOutputStream();
@@ -332,6 +334,45 @@ public class MainActivity extends Activity {
         android.database.Cursor c = getContentResolver().query(u, new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null);
         try { if (c != null && c.moveToFirst()) return c.getString(0); } finally { if (c != null) c.close(); }
         return u.getLastPathSegment();
+    }
+
+    // ---- nombre sugerido (solo propuesta: si el usuario lo escribe o cambia, no se pisa)
+    private String autoName;
+
+    private void suggestName(String s) {
+        if (s == null || s.length() == 0) return;
+        String cur = name.getText().toString();
+        if (cur.length() == 0 || cur.equals(autoName)) { name.setText(s); autoName = s; }
+    }
+
+    /** "mi-juego_v2" -> "Mi juego v2" */
+    private static String pretty(String s) {
+        if (s == null) return "";
+        s = s.replaceAll("[_\\-.]+", " ").replaceAll("\\s+", " ").trim();
+        return s.length() == 0 ? "" : Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
+    private class SuggestWatcher implements android.text.TextWatcher {
+        private final boolean web;
+        SuggestWatcher(boolean web) { this.web = web; }
+        public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
+        public void onTextChanged(CharSequence s, int a, int b, int c) { }
+        public void afterTextChanged(android.text.Editable e) {
+            String t = e.toString().trim();
+            if (t.length() == 0 || (web ? mode != Pipeline.Mode.WEB : mode != Pipeline.Mode.GOOF)) return;
+            try {
+                if (web) {   // dominio: midominio.com -> Midominio
+                    String h = Uri.parse(t.startsWith("http") ? t : "https://" + t).getHost();
+                    if (h == null) return;
+                    String[] p = h.replaceFirst("^www\\.", "").split("\\.");
+                    suggestName(pretty(p.length >= 2 ? p[p.length - 2] : p[0]));
+                } else {     // enlace: último tramo de la ruta (el slug del juego)
+                    String last = Uri.parse(t).getLastPathSegment();
+                    if (last != null && last.equals("index.html")) { java.util.List<String> sg = Uri.parse(t).getPathSegments(); last = sg.size() > 1 ? sg.get(sg.size() - 2) : null; }
+                    if (last != null) suggestName(pretty(last));
+                }
+            } catch (Exception ex) { }
+        }
     }
 
     private static String stripExt(String s) { int d = s == null ? -1 : s.lastIndexOf('.'); return d > 0 ? s.substring(0, d) : (s == null ? "" : s); }
@@ -462,7 +503,7 @@ public class MainActivity extends Activity {
     }
 
     private void resetForm() {
-        name.setText(""); pkg.setText(""); vname.setText("1.0"); vcode.setText(""); link.setText(""); webUrl.setText("");
+        autoName = null; name.setText(""); pkg.setText(""); vname.setText("1.0"); vcode.setText(""); link.setText(""); webUrl.setText("");
         zipUri = null; folderUri = null; customIcon = null; webIcon = null; lastApk = null;
         zipName.setText(Lang.t("Ningún archivo elegido")); folderName.setText(Lang.t("Ninguna carpeta elegida"));
         resultCard.setVisibility(View.GONE); logView.setText(""); ((View) logView.getParent()).setVisibility(View.GONE);

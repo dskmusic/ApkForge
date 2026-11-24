@@ -9,12 +9,20 @@ import com.dskmusic.apkforge.core.Lang;
 final class Prefs {
     private final SharedPreferences sp;
     private final boolean priv;
-    Prefs(Context c) { sp = c.getSharedPreferences("apkforge", Context.MODE_PRIVATE); priv = KeystoreStore.hasPrivate(c); }
+    private final Context ctx;
+    Prefs(Context c) { ctx = c.getApplicationContext(); sp = c.getSharedPreferences("apkforge", Context.MODE_PRIVATE); priv = KeystoreStore.hasPrivate(c); }
     // Sin keystore privado (build de GitHub) el de debug va con alias/clave públicos: ya funciona sin configurar nada.
     String alias() { return sp.getString("alias", priv ? "dskmusic" : "androiddebugkey"); }
     String storePass() { return sp.getString("storePass", priv ? "" : "android"); }
     String keyPass() { return sp.getString("keyPass", ""); }
-    String prefix() { return sp.getString("prefix", "com.dskmusic"); }
+    /** Prefijo de paquete: el guardado en Ajustes; por defecto com.dskmusic en tu build local y com.<nombre del dispositivo> en el de GitHub. */
+    String prefix() { return sp.getString("prefix", BuildConfig.GOOF ? "com.dskmusic" : devicePrefix()); }
+    private String devicePrefix() {
+        String n = null;
+        try { n = android.provider.Settings.Global.getString(ctx.getContentResolver(), "device_name"); } catch (Exception e) { }
+        if (n == null || n.trim().length() == 0) n = android.os.Build.MODEL;
+        return "com." + com.dskmusic.apkforge.core.Names.slugify(n);
+    }
     String ksName() { return Lang.t(sp.getString("ksName", defaultKsName())); }
     /** "auto" | "es" | "en" */
     String lang() { return sp.getString("lang", "auto"); }
