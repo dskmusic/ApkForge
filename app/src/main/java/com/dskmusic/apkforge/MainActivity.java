@@ -84,6 +84,7 @@ public class MainActivity extends Activity {
         if (rid != 0) logo.setImageResource(rid);
         head.addView(logo, new LinearLayout.LayoutParams(Ui.dp(this, 46), Ui.dp(this, 46)));
         TextView t = Ui.text(this, "ApkForge", 24, Ui.TEXT, true);
+        holdEgg(logo); holdEgg(t);   // easter egg: mantener pulsado 2 s
         t.setPadding(Ui.dp(this, 12), 0, 0, 0);
         head.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
         ImageButton help = Ui.iconButton(this, R.drawable.ic_help, Ui.CARD2);
@@ -104,7 +105,7 @@ public class MainActivity extends Activity {
         c1.addView(Ui.text(this, "1 · Origen", 16, Ui.TEXT, true));
         LinearLayout chipRow = Ui.row(this);
         // BuildConfig.GOOF solo es true en tu build local (sin -PpublicBuild); el de GitHub no incluye goof.
-        String[] labels = BuildConfig.GOOF ? new String[]{"ZIP / APK", "Carpeta", "Enlace goof", "Web"} : new String[]{"ZIP / APK", "Carpeta", "Web"};
+        String[] labels = BuildConfig.GOOF ? new String[]{"ZIP / APK", "Carpeta", "Goof", "Web"} : new String[]{"ZIP / APK", "Carpeta", "Web"};
         Pipeline.Mode[] modes = BuildConfig.GOOF ? new Pipeline.Mode[]{Pipeline.Mode.ZIP, Pipeline.Mode.FOLDER, Pipeline.Mode.GOOF, Pipeline.Mode.WEB} : new Pipeline.Mode[]{Pipeline.Mode.ZIP, Pipeline.Mode.FOLDER, Pipeline.Mode.WEB};
         for (int i = 0; i < modes.length; i++) {
             final Pipeline.Mode m = modes[i];
@@ -602,6 +603,33 @@ public class MainActivity extends Activity {
         if (us.size() == 1) i.putExtra(Intent.EXTRA_STREAM, us.get(0)); else i.putParcelableArrayListExtra(Intent.EXTRA_STREAM, us);
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivity(Intent.createChooser(i, "Compartir"));
+    }
+
+    /** Easter egg: mantener pulsado 2 segundos o más el logo o el nombre. */
+    private void holdEgg(final View v) {
+        final Runnable go = new Runnable() { public void run() {
+            v.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+            EasterEgg.show(MainActivity.this);
+        } };
+        v.setOnTouchListener(new View.OnTouchListener() {
+            float dx, dy;
+            public boolean onTouch(View view, android.view.MotionEvent e) {
+                switch (e.getActionMasked()) {
+                    case android.view.MotionEvent.ACTION_DOWN: dx = e.getX(); dy = e.getY(); ui.postDelayed(go, 2000); break;
+                    case android.view.MotionEvent.ACTION_MOVE:
+                        if (Math.abs(e.getX() - dx) > Ui.dp(MainActivity.this, 24) || Math.abs(e.getY() - dy) > Ui.dp(MainActivity.this, 24)) ui.removeCallbacks(go);
+                        break;
+                    default: ui.removeCallbacks(go);
+                }
+                return true;
+            }
+        });
+    }
+
+    /** Pide confirmación antes de salir con el botón atrás. */
+    @Override public void onBackPressed() {
+        Ui.confirm(this, "Salir", running ? "Se está generando un APK. ¿Salir igualmente?" : "¿Quieres cerrar ApkForge?", "Salir",
+                new Runnable() { public void run() { finish(); } });
     }
 
     @Override protected void onResume() {

@@ -136,6 +136,9 @@ public final class Lang {
         // ---- ajustes
         a("Ajustes", "Settings");
         a("Ayuda", "Help");
+        a("Salir", "Exit");
+        a("¿Quieres cerrar ApkForge?", "Do you want to close ApkForge?");
+        a("Se está generando un APK. ¿Salir igualmente?", "An APK is being generated. Exit anyway?");
         a("Idioma", "Language");
         a("Automático (sistema)", "Automatic (system)");
         a("Firma (keystore)", "Signing (keystore)");
