@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Firma de release (opcional): copia keystore.properties.example a keystore.properties y rellénalo
+def ksFile = rootProject.file('keystore.properties')
+def ksProps = new Properties()
+if (ksFile.exists()) ksProps.load(new FileInputStream(ksFile))
+
+def verProps = new Properties()
+rootProject.file('version.properties').withInputStream { verProps.load(it) }
+
+android {
+    namespace 'com.dskmusic.apkforge'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.dskmusic.apkforge'
+        minSdk 26
+        targetSdk 34
+        versionCode Integer.parseInt((project.findProperty('versionCode') ?: verProps['versionCode']).toString())
+        versionName project.findProperty('versionName') ?: verProps['versionName']
+    }
+
+    signingConfigs {
+        if (ksFile.exists()) {
+            release {
+                storeFile file(ksProps['storeFile'])
+                storePassword ksProps['storePassword']
+                keyAlias ksProps['keyAlias']
+                keyPassword ksProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // con keystore.properties (local) firma con tu clave; sin él (GitHub/CI) usa la de debug
+            signingConfig ksFile.exists() ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    // base.apk, keystore y recursos: se guardan tal cual (el APK base ya viene comprimido)
+    androidResources {
+        noCompress 'apk', 'keystore'
+    }
+}
+
+dependencies {
+    implementation files('libs/apksig.jar')
+}

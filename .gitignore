@@ -1,0 +1,55 @@
+# ApkForge - archivos que NO se suben a GitHub / files NOT pushed to GitHub
+
+# Secretos y configuracion local / secrets and local config
+local.properties
+keystore.properties
+*.jks
+*.p12
+*.pem
+.env
+.env.*
+# Keystore privado de firma (el de debug "debug.keystore" SI se sube a proposito)
+# Private signing keystore (the public "debug.keystore" IS committed on purpose)
+*.keystore
+!app/src/main/assets/debug.keystore
+
+# Personal
+.backups/
+.backup/
+_backups/
+_backup/
+CREAR BACKUP.pyw
+MANUAL.md
+subir_cambios.bat
+bajar_cambios.bat
+*.lnk
+*.zip
+*.7z
+*.rar
+
+# Android Studio / Gradle
+*.iml
+.idea/
+.gradle/
+.kotlin/
+build/
+app/build/
+app/release/
+captures/
+*.log
+*.apk
+!app/src/main/assets/base.apk
+
+# Gradle wrapper: solo el wrapper / wrapper only
+gradle/*
+!gradle/wrapper/
+gradle/wrapper/*
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# SO / editores
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ApkForge</title>
+<meta name="description" content="Turn your website, game or link into a signed APK on your phone.">
+<link rel="icon" href="icon.png">
+<style>
+:root{--bg:#0d1017;--card:#171c27;--text:#e8ebf2;--muted:#8d96ab;--accent:#4f8cff}
+@media (prefers-color-scheme:light){:root{--bg:#f4f6fb;--card:#fff;--text:#12151c;--muted:#5b6479}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px}
+main{max-width:560px;width:100%;background:var(--card);border-radius:24px;padding:32px 24px;text-align:center}
+img{width:96px;height:96px;border-radius:22px}
+h1{margin:12px 0 4px;font-size:2rem}
+p{color:var(--muted)}
+ul{text-align:left;color:var(--muted);padding-left:1.2em}
+.btn{display:block;margin:12px 0;padding:14px;border-radius:14px;font-weight:700;text-decoration:none}
+.dl{background:var(--accent);color:#fff}
+.gh{background:transparent;color:var(--text);border:1px solid var(--muted)}
+button{position:fixed;top:12px;right:12px;background:var(--card);color:var(--text);border:1px solid var(--muted);border-radius:10px;padding:6px 12px;cursor:pointer}
+small{color:var(--muted)}
+</style>
+</head>
+<body>
+<button id="lang" aria-label="Language">ES / EN</button>
+<main>
+  <img src="icon.png" alt="ApkForge">
+  <h1>ApkForge</h1>
+  <p data-en="Turn your website, game or link into a signed APK, right on your phone. No Android Studio needed."
+     data-es="Convierte tu web, juego o enlace en un APK firmado, directamente desde el móvil. Sin Android Studio."></p>
+  <ul>
+    <li data-en="From a ZIP/APK, a folder, a link or a website" data-es="Desde un ZIP/APK, una carpeta, un enlace o una web"></li>
+    <li data-en="Custom name, icon, orientation, theme…" data-es="Nombre, icono, orientación y tema personalizables…"></li>
+    <li data-en="Install, share or save the result" data-es="Instala, comparte o guarda el resultado"></li>
+    <li data-en="Everything runs on your device" data-es="Todo se hace en tu dispositivo"></li>
+  </ul>
+  <a class="btn dl" href="https://github.com/dskmusic/ApkForge/releases/latest/download/ApkForge.apk" data-en="⬇ Download APK" data-es="⬇ Descargar APK"></a>
+  <a class="btn gh" href="https://github.com/dskmusic/ApkForge" data-en="View on GitHub" data-es="Ver en GitHub"></a>
+  <small>Android 8.0+ · Apache 2.0 · Made with ❤ by <a href="https://www.dskmusic.com/dsk_dev_redirect.php" style="color:var(--accent)">DSK</a></small>
+</main>
+<script>
+var L=localStorage.getItem('lang')||((navigator.language||'en').toLowerCase().indexOf('es')==0?'es':'en');
+function apply(){document.documentElement.lang=L;document.querySelectorAll('[data-en]').forEach(function(e){e.textContent=e.dataset[L]})}
+document.getElementById('lang').onclick=function(){L=L=='es'?'en':'es';localStorage.setItem('lang',L);apply()};
+apply();
+</script>
+</body>
+</html>
