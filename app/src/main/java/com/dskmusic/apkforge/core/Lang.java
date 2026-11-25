@@ -130,6 +130,8 @@ public final class Lang {
         rx("¿Borrar (.*)\\?", "Delete $1?");
         a("Aceptar", "OK");
         a("Cancelar", "Cancel");
+        a("Usar", "Use");
+        a("Confirmar al salir", "Confirm on exit");
         pre("Instalación: ", "Installation: ");
         a("Compartir APK", "Share APK");
 

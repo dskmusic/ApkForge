@@ -76,7 +76,7 @@ public final class ApkBuilder {
         s.append("\"name\":").append(q(p.name)).append(",\"package\":").append(q(p.pkg)).append(",\"entry\":").append(q(p.entry));
         s.append(",\"orientation\":").append(q(o.orientation())).append(",\"fullscreen\":").append(o.fullscreen).append(",\"keepAwake\":").append(o.keepAwake);
         s.append(",\"bg\":").append(q(o.bg)).append(",\"selectText\":").append(o.selectText).append(",\"zoom\":").append(o.zoom);
-        s.append(",\"pullRefresh\":").append(o.pullRefresh).append(",\"theme\":").append(q(o.theme)).append(",\"mobileViewport\":").append(o.mobileViewport);
+        s.append(",\"pullRefresh\":").append(o.pullRefresh).append(",\"theme\":").append(q(o.theme)).append(",\"mobileViewport\":").append(o.mobileViewport).append(",\"exitConfirm\":").append(o.exitConfirm);
         s.append(",\"loadDelay\":").append(Math.max(0, Math.min(5000, o.loadDelay)));
         if (p.remoteUrl.length() > 0) s.append(",\"remoteUrl\":").append(q(p.remoteUrl));
         if (p.fallbackHost.length() > 0) s.append(",\"fallbackHost\":").append(q(p.fallbackHost));

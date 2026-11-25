@@ -32,7 +32,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class MainActivity extends Activity {
-    private static final int REQ_ZIP = 1, REQ_FOLDER = 2, REQ_ICON = 3, REQ_SAVE = 4;
+    private static final int REQ_ZIP = 1, REQ_FOLDER = 2, REQ_ICON = 3, REQ_SAVE = 4, REQ_CROP = 5;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Prefs prefs;
@@ -42,7 +42,7 @@ public class MainActivity extends Activity {
     private TextView zipName, folderName, logView, iconInfo, resName;
     private EditText link, webUrl, name, pkg, vname, vcode, delay;
     private ImageView iconPreview;
-    private CheckBox cbWebIcon, cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbViewport, cbFull, cbAwake, cbClean;
+    private CheckBox cbWebIcon, cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbViewport, cbFull, cbAwake, cbClean, cbExit;
     private Spinner theme;
     private Button genBtn, zipBtn;
     private Uri zipUri, folderUri;
@@ -188,7 +188,8 @@ public class MainActivity extends Activity {
         cbFull = Ui.check(this, "Pantalla completa (oculta barras)", true);
         cbAwake = Ui.check(this, "Mantener pantalla encendida", false);
         cbViewport = Ui.check(this, "Adaptar a móvil si la web no lo está", true);
-        for (CheckBox cb : BuildConfig.GOOF ? new CheckBox[]{cbClean, cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbFull, cbAwake, cbViewport} : new CheckBox[]{cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbFull, cbAwake, cbViewport}) c4.addView(cb);
+        cbExit = Ui.check(this, "Confirmar al salir", true);
+        for (CheckBox cb : BuildConfig.GOOF ? new CheckBox[]{cbClean, cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbFull, cbAwake, cbViewport, cbExit} : new CheckBox[]{cbPortrait, cbLandscape, cbSelect, cbZoom, cbPull, cbFull, cbAwake, cbViewport, cbExit}) c4.addView(cb);
         c4.addView(Ui.label(this, "Tema"));
         theme = new Spinner(this);
         ArrayAdapter<String> ad = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{Lang.t("Oscuro (por defecto)"), Lang.t("Claro"), Lang.t("Según el sistema")});
@@ -326,19 +327,17 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
-        if (res != RESULT_OK || data == null || data.getData() == null) return;
+        if (res != RESULT_OK || data == null) return;
         Uri u = data.getData();
+        if (u == null && req != REQ_CROP) return;
         try {
             if (req == REQ_ZIP) { zipUri = u; zipName.setText(displayName(u)); suggestName(pretty(stripExt(displayName(u)))); }
             else if (req == REQ_FOLDER) { folderUri = u; String fl = Uri.decode(u.getLastPathSegment() == null ? u.toString() : u.getLastPathSegment()); folderName.setText(fl); suggestName(pretty(fl.substring(Math.max(fl.lastIndexOf('/'), fl.lastIndexOf(':')) + 1))); }
             else if (req == REQ_ICON) {
-                InputStream in = getContentResolver().openInputStream(u);
-                ByteArrayOutputStream bo = new ByteArrayOutputStream();
-                byte[] b = new byte[16384]; int n;
-                while ((n = in.read(b)) >= 0) { bo.write(b, 0, n); if (bo.size() > 12 << 20) throw new IOException("Imagen demasiado grande"); }
-                in.close();
-                customIcon = bo.toByteArray();
-                if (BitmapFactory.decodeByteArray(customIcon, 0, customIcon.length) == null) { customIcon = null; Ui.alert(this, "Icono", "El archivo no es una imagen válida"); }
+                startActivityForResult(new Intent(this, CropActivity.class).setData(u), REQ_CROP);
+            } else if (req == REQ_CROP) {
+                File f = new File(data.getStringExtra(CropActivity.OUT));
+                customIcon = Files2.readAll(f); f.delete();
                 updateIcon();
             } else if (req == REQ_SAVE && pendingSave != null) {
                 InputStream in = new FileInputStream(pendingSave);
@@ -447,7 +446,7 @@ public class MainActivity extends Activity {
         o.cleanGoof = cbClean.isChecked(); o.allowPortrait = cbPortrait.isChecked(); o.allowLandscape = cbLandscape.isChecked();
         if (!o.allowPortrait && !o.allowLandscape) { o.allowPortrait = true; o.allowLandscape = true; }
         o.selectText = cbSelect.isChecked(); o.zoom = cbZoom.isChecked(); o.pullRefresh = cbPull.isChecked();
-        o.fullscreen = cbFull.isChecked(); o.keepAwake = cbAwake.isChecked(); o.mobileViewport = cbViewport.isChecked();
+        o.fullscreen = cbFull.isChecked(); o.keepAwake = cbAwake.isChecked(); o.mobileViewport = cbViewport.isChecked(); o.exitConfirm = cbExit.isChecked();
         o.theme = theme.getSelectedItemPosition() == 1 ? "light" : theme.getSelectedItemPosition() == 2 ? "system" : "dark";
         try { o.loadDelay = Integer.parseInt(delay.getText().toString().trim()); } catch (NumberFormatException e) { o.loadDelay = 700; }
         r.link = link.getText().toString().trim(); r.webUrl = webUrl.getText().toString().trim();
