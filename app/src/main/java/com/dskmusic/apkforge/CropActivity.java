@@ -73,6 +73,9 @@ public class CropActivity extends Activity {
         private final Matrix m = new Matrix();
         private final RectF fr = new RectF();
         private final Paint pDim = new Paint(), pLine = new Paint(Paint.ANTI_ALIAS_FLAG), pImg = new Paint(Paint.FILTER_BITMAP_FLAG);
+        private final Matrix m0 = new Matrix();
+        private final RectF fr0 = new RectF();
+        private final android.view.GestureDetector gd;
         private boolean init;
         private int corner = -1; // 0..3 = TL TR BR BL, -1 = imagen
         private float lx, ly, lx2, ly2;
@@ -81,6 +84,9 @@ public class CropActivity extends Activity {
 
         CropView(Context c, Bitmap b) {
             super(c); bmp = b; hit = Ui.dp(c, 36);
+            gd = new android.view.GestureDetector(c, new android.view.GestureDetector.SimpleOnGestureListener() {
+                @Override public boolean onDoubleTap(MotionEvent e) { m.set(m0); fr.set(fr0); invalidate(); return true; }
+            });
             pDim.setColor(0xB0000000);
             pLine.setColor(Color.WHITE); pLine.setStyle(Paint.Style.STROKE); pLine.setStrokeWidth(Ui.dp(c, 2));
         }
@@ -92,6 +98,7 @@ public class CropActivity extends Activity {
             float k = s / Math.min(bmp.getWidth(), bmp.getHeight()); // la imagen cubre el marco
             m.setScale(k, k);
             m.postTranslate(w / 2f - bmp.getWidth() * k / 2, h / 2f - bmp.getHeight() * k / 2);
+            m0.set(m); fr0.set(fr);
         }
 
         void rotate(float deg) { m.postRotate(deg, fr.centerX(), fr.centerY()); fix(); invalidate(); }
@@ -145,6 +152,7 @@ public class CropActivity extends Activity {
         }
 
         @Override public boolean onTouchEvent(MotionEvent e) {
+            gd.onTouchEvent(e);
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     corner = cornerAt(e.getX(), e.getY()); lx = e.getX(); ly = e.getY(); ptrs = 1; break;
@@ -175,7 +183,8 @@ public class CropActivity extends Activity {
             float ax = corner == 0 || corner == 3 ? fr.right : fr.left, ay = corner == 0 || corner == 1 ? fr.bottom : fr.top;
             float sx = corner == 0 || corner == 3 ? -1 : 1, sy = corner == 0 || corner == 1 ? -1 : 1;
             float s = Math.max(Ui.dp(getContext(), 60), Math.max((x - ax) * sx, (y - ay) * sy));
-            s = Math.min(s, Math.min(getWidth(), getHeight()));
+            // el marco no puede salirse de la pantalla
+            s = Math.min(s, Math.min(sx < 0 ? ax : getWidth() - ax, sy < 0 ? ay : getHeight() - ay));
             float nx = ax + sx * s, ny = ay + sy * s;
             fr.set(Math.min(ax, nx), Math.min(ay, ny), Math.max(ax, nx), Math.max(ay, ny));
         }
