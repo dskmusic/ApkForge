@@ -549,6 +549,14 @@ public class MainActivity extends Activity {
     }
 
     private void offerOffline(final WebCrawl.Result r) {
+        if (r.title != null) suggestName(r.title);   // <title> o nombre del manifest, si no has escrito otro
+        if (r.icon != null && customIcon == null && webIcon == null) {
+            Bitmap ib = BitmapFactory.decodeByteArray(r.icon, 0, r.icon.length);
+            if (ib != null && Math.min(ib.getWidth(), ib.getHeight()) >= IconFetch.GOOD_PX) {
+                ByteArrayOutputStream bo = new ByteArrayOutputStream(); ib.compress(Bitmap.CompressFormat.PNG, 100, bo);
+                webIcon = bo.toByteArray(); updateIcon();
+            }
+        }
         StringBuilder sb = new StringBuilder();
         sb.append(String.format(Locale.ROOT, "%d archivos, %.1f MB descargados.", r.ok, r.bytes / 1e6));
         boolean clean = r.failed.isEmpty() && r.external.isEmpty();
@@ -586,12 +594,13 @@ public class MainActivity extends Activity {
         running = true; genBtn.setEnabled(false);
         new Thread(new Runnable() { public void run() {
             String err = null;
-            try { saveZip(dir, zn); } catch (Throwable e) { err = e.getMessage() == null ? e.toString() : e.getMessage(); }
+            Uri su0 = null;
+            try { su0 = saveZip(dir, zn); } catch (Throwable e) { err = e.getMessage() == null ? e.toString() : e.getMessage(); }
             finally { Files2.deleteTree(dir); }
-            final String fe = err;
+            final String fe = err; final Uri su = su0;
             ui.post(new Runnable() { public void run() {
                 running = false; genBtn.setEnabled(true);
-                if (fe != null) Ui.alert(MainActivity.this, "Error", fe); else Ui.alert(MainActivity.this, "ZIP guardado", "Descargas/" + zn);
+                if (fe != null) Ui.alert(MainActivity.this, "Error", fe); else zipSaved(zn, su);
             } });
         } }).start();
     }
@@ -676,26 +685,39 @@ public class MainActivity extends Activity {
         running = true; genBtn.setEnabled(false); zipBtn.setEnabled(false);
         logView.setText(""); resultCard.setVisibility(View.GONE);
         new Thread(new Runnable() { public void run() {
-            String err = null;
+            String err = null; Uri su0 = null;
             File d = new File(getCacheDir(), "gzip");
             try {
                 Files2.deleteTree(d); d.mkdirs();
                 Goof.fetchInto(d, lk, 200L << 20, 5000, new Logger() { public void log(String m) { MainActivity.this.log(m); } });
-                saveZip(d, zn);
+                su0 = saveZip(d, zn);
             } catch (Throwable e) { err = e.getMessage() == null ? e.toString() : e.getMessage(); }
             finally { Files2.deleteTree(d); }
-            final String fe = err;
+            final String fe = err; final Uri su = su0;
             ui.post(new Runnable() { public void run() {
                 running = false; genBtn.setEnabled(true); zipBtn.setEnabled(true);
                 if (fe != null) Ui.alert(MainActivity.this, "Error", fe);
-                else Ui.alert(MainActivity.this, "ZIP guardado", "Descargas/" + zn);
+                else zipSaved(zn, su);
             } });
         } }).start();
     }
 
-    /** Comprime la carpeta d y la guarda como zn en Descargas. */
-    private void saveZip(File d, String zn) throws Exception {
+    /** Aviso de ZIP guardado; en Android 10+ ofrece compartirlo. */
+    private void zipSaved(String zn, final Uri u) {
+        if (u == null) { Ui.alert(this, "ZIP guardado", "Descargas/" + zn); return; }
+        Ui.dialog(this, "ZIP guardado", "Descargas/" + zn, "Compartir", new Runnable() { public void run() {
+            try {
+                Intent i = new Intent(Intent.ACTION_SEND);
+                i.setType("application/zip"); i.putExtra(Intent.EXTRA_STREAM, u); i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(Intent.createChooser(i, null));
+            } catch (Exception e) { Ui.alert(MainActivity.this, "Error", String.valueOf(e.getMessage())); }
+        } }, "Cerrar");
+    }
+
+    /** Comprime la carpeta d y la guarda como zn en Descargas. Devuelve su Uri (null en Android 9 o anterior). */
+    private Uri saveZip(File d, String zn) throws Exception {
         File z = new File(getCacheDir(), "gzip.zip");
+        Uri savedUri = null;   // solo Android 10+: sirve para compartir
         try {
                 ZipOutputStream zo = new ZipOutputStream(new FileOutputStream(z));
                 try {
@@ -709,6 +731,7 @@ public class MainActivity extends Activity {
                     cv.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS);
                     Uri u = getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
                     os = getContentResolver().openOutputStream(u);
+                    savedUri = u;
                 } else { // ponytail: Android 8-9 necesita permiso de almacenamiento; no se pide aquí
                     File dl = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
                     dl.mkdirs();
@@ -716,6 +739,7 @@ public class MainActivity extends Activity {
                 }
                 try { os.write(Files2.readAll(z)); } finally { os.close(); }
                 log("Guardado en Descargas: " + zn);
+                return savedUri;
         } finally { z.delete(); }
     }
 
