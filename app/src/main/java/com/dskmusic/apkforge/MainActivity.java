@@ -801,13 +801,52 @@ public class MainActivity extends Activity {
     // ------------------------------------------------------------------ lista
     private static String fmt(long n) { return n >= 1 << 20 ? String.format(Locale.US, "%.1f MB", n / 1048576.0) : (n >> 10) + " KB"; }
 
+    private static final class ApkInfo { String label, pkg, vname = ""; long vcode; android.graphics.drawable.Drawable icon; }
+    private final Map<String, ApkInfo> apkCache = new HashMap<String, ApkInfo>();
+
+    /** Nombre, paquete, versión e icono leídos del propio APK (en caché mientras no cambie el archivo). */
+    @SuppressWarnings("deprecation")
+    private ApkInfo infoOf(File f) {
+        String key = f.getName() + f.lastModified();
+        ApkInfo i = apkCache.get(key);
+        if (i != null) return i;
+        i = new ApkInfo();
+        try {
+            android.content.pm.PackageManager pm = getPackageManager();
+            android.content.pm.PackageInfo pi = pm.getPackageArchiveInfo(f.getAbsolutePath(), 0);
+            if (pi != null && pi.applicationInfo != null) {
+                pi.applicationInfo.sourceDir = f.getAbsolutePath(); pi.applicationInfo.publicSourceDir = f.getAbsolutePath();
+                i.label = String.valueOf(pi.applicationInfo.loadLabel(pm)); i.icon = pi.applicationInfo.loadIcon(pm);
+                i.pkg = pi.packageName; i.vname = pi.versionName == null ? "" : pi.versionName;
+                i.vcode = Build.VERSION.SDK_INT >= 28 ? pi.getLongVersionCode() : pi.versionCode;
+            }
+        } catch (Throwable e) { }
+        if (i.label == null || i.label.length() == 0) i.label = f.getName();
+        apkCache.put(key, i);
+        return i;
+    }
+
+    /** versionCode instalado de pkg, o -1 si no está instalada. */
+    @SuppressWarnings("deprecation")
+    private long installedCode(String pkg) {
+        if (pkg == null) return -1;
+        try {
+            android.content.pm.PackageInfo p = getPackageManager().getPackageInfo(pkg, 0);
+            return Build.VERSION.SDK_INT >= 28 ? p.getLongVersionCode() : p.versionCode;
+        } catch (Throwable e) { return -1; }
+    }
+
     private void refreshList() {
         listBox.removeAllViews();
         File[] fs = apksDir().listFiles();
         listBox.addView(Ui.text(this, "APKs generados", 16, Ui.TEXT, true));
-        if (fs == null || fs.length == 0) { listBox.addView(Ui.label(this, "Aún no hay ninguno.")); return; }
+        if (fs == null || fs.length == 0) { listBox.addView(Ui.label(this, "Aún no hay ninguno. Genera tu primer APK arriba.")); return; }
         Arrays.sort(fs, new Comparator<File>() { public int compare(File a, File b) { return Long.compare(b.lastModified(), a.lastModified()); } });
         selected.retainAll(namesOf(fs));
+        long total = 0; for (File f : fs) total += f.length();
+        TextView sum = Ui.text(this, fs.length + " APK · " + fmt(total), 12.5f, Ui.MUTED, false);
+        sum.setPadding(0, Ui.dp(this, 2), 0, Ui.dp(this, 8));
+        listBox.addView(sum);
         LinearLayout top = Ui.row(this);
         final CheckBox all = Ui.check(this, "Seleccionar todos", selected.size() == fs.length);
         final Button del = Ui.button(this, selected.isEmpty() ? "Borrar" : "Borrar (" + selected.size() + ")", Ui.RED);
@@ -828,22 +867,41 @@ public class MainActivity extends Activity {
             Ui.confirm(MainActivity.this, "Borrar APK", "¿Borrar " + sel.size() + " APK seleccionado" + (sel.size() > 1 ? "s" : "") + "? No se puede deshacer.\n\n" + join(sel), "Borrar",
                     new Runnable() { public void run() { for (String n : sel) new File(apksDir(), n).delete(); selected.clear(); if (lastApk != null && !lastApk.exists()) resultCard.setVisibility(View.GONE); refreshList(); } });
         } });
+        Ui.gap(listBox, 6);
         SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
         for (final File f : fs) {
+            ApkInfo ai = infoOf(f);
+            long inst = installedCode(ai.pkg);
             LinearLayout r = Ui.row(this);
-            r.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 6));
+            r.setBackground(Ui.round(Ui.CARD2, 12, this));
+            r.setPadding(Ui.dp(this, 4), Ui.dp(this, 8), Ui.dp(this, 10), Ui.dp(this, 8));
+            LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, -2); rl.bottomMargin = Ui.dp(this, 8);
             final CheckBox cb = new CheckBox(this);
             cb.setButtonTintList(android.content.res.ColorStateList.valueOf(Ui.ACCENT));
             cb.setChecked(selected.contains(f.getName()));
             cb.setOnClickListener(new View.OnClickListener() { public void onClick(View v) {
                 if (cb.isChecked()) selected.add(f.getName()); else selected.remove(f.getName()); refreshList(); } });
             r.addView(cb);
+            ImageView ic = new ImageView(this);
+            ic.setImageDrawable(ai.icon);
+            ic.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            LinearLayout.LayoutParams il = new LinearLayout.LayoutParams(Ui.dp(this, 46), Ui.dp(this, 46)); il.rightMargin = Ui.dp(this, 12);
+            r.addView(ic, il);
             LinearLayout tx = new LinearLayout(this); tx.setOrientation(LinearLayout.VERTICAL);
-            tx.addView(Ui.text(this, f.getName(), 14.5f, Ui.TEXT, true));
-            tx.addView(Ui.text(this, df.format(new Date(f.lastModified())) + " · " + fmt(f.length()), 12, Ui.MUTED, false));
+            tx.addView(Ui.text(this, ai.label, 15, Ui.TEXT, true));
+            String sub = (ai.pkg != null ? ai.pkg + " · " : "") + (ai.vname.length() > 0 ? "v" + ai.vname + " · " : "") + fmt(f.length());
+            tx.addView(Ui.text(this, sub, 12, Ui.MUTED, false));
+            TextView st = Ui.text(this, df.format(new Date(f.lastModified())), 12, Ui.MUTED, false);
+            if (inst >= 0) {
+                boolean upd = ai.vcode > inst;
+                st.setText(st.getText() + "  ·  " + Lang.t(upd ? "↑ Actualización disponible" : "● Instalada"));
+                if (upd) st.setTextColor(Ui.ACCENT); else st.setTextColor(0xFF3DDC84);
+            }
+            tx.addView(st);
             tx.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { actions(f); } });
             r.addView(tx, new LinearLayout.LayoutParams(0, -2, 1));
-            listBox.addView(r);
+            r.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { actions(f); } });
+            listBox.addView(r, rl);
         }
     }
 
@@ -851,13 +909,28 @@ public class MainActivity extends Activity {
     private static String join(List<String> l) { StringBuilder sb = new StringBuilder(); for (String s : l) { if (sb.length() > 0) sb.append('\n'); sb.append(s); } return sb.toString(); }
 
     private void actions(final File f) {
-        Ui.choose(this, f.getName(), new String[]{"Instalar", "Compartir", "Guardar como…", "Borrar"},
-                new int[]{Ui.ACCENT, Ui.CARD2, Ui.CARD2, Ui.RED},
-                new Runnable[]{
-                    new Runnable() { public void run() { install(f); } },
-                    new Runnable() { public void run() { share(f); } },
-                    new Runnable() { public void run() { saveAs(f); } },
-                    new Runnable() { public void run() { Ui.confirm(MainActivity.this, "Borrar APK", "¿Borrar " + f.getName() + "?", "Borrar", new Runnable() { public void run() { f.delete(); selected.remove(f.getName()); refreshList(); } }); } }});
+        final ApkInfo ai = infoOf(f);
+        long inst = installedCode(ai.pkg);
+        boolean installed = inst >= 0;
+        List<String> labels = new ArrayList<String>(); List<Integer> colors = new ArrayList<Integer>(); List<Runnable> acts = new ArrayList<Runnable>();
+        labels.add(installed && ai.vcode > inst ? "Actualizar" : installed ? "Reinstalar" : "Instalar"); colors.add(Ui.ACCENT);
+        acts.add(new Runnable() { public void run() { install(f); } });
+        if (installed) {
+            labels.add("Abrir"); colors.add(Ui.CARD2);
+            acts.add(new Runnable() { public void run() {
+                Intent li = getPackageManager().getLaunchIntentForPackage(ai.pkg);
+                if (li != null) startActivity(li); else Ui.alert(MainActivity.this, "Abrir", "No se pudo abrir la app."); } });
+        }
+        labels.add("Compartir"); colors.add(Ui.CARD2); acts.add(new Runnable() { public void run() { share(f); } });
+        labels.add("Guardar como…"); colors.add(Ui.CARD2); acts.add(new Runnable() { public void run() { saveAs(f); } });
+        if (installed) {
+            labels.add("Desinstalar"); colors.add(Ui.CARD2);
+            acts.add(new Runnable() { public void run() { startActivity(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + ai.pkg))); } });
+        }
+        labels.add("Borrar APK"); colors.add(Ui.RED);
+        acts.add(new Runnable() { public void run() { Ui.confirm(MainActivity.this, "Borrar APK", "¿Borrar " + ai.label + " (" + f.getName() + ")?", "Borrar", new Runnable() { public void run() { f.delete(); selected.remove(f.getName()); refreshList(); } }); } });
+        int[] cs = new int[colors.size()]; for (int i = 0; i < cs.length; i++) cs[i] = colors.get(i);
+        Ui.choose(this, ai.label, labels.toArray(new String[0]), cs, acts.toArray(new Runnable[0]));
     }
 
     private void share(File f) { share(Collections.singletonList(f)); }
@@ -901,7 +974,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        if (!prefs.lang().equals(builtLang)) recreate();   // idioma cambiado en Ajustes: se reconstruye la pantalla
+        if (!prefs.lang().equals(builtLang)) recreate(); else refreshList();   // al volver (p. ej. tras instalar o desinstalar) se actualiza el estado de cada APK
     }
 
     @Override public void onConfigurationChanged(Configuration c) { super.onConfigurationChanged(c); }
