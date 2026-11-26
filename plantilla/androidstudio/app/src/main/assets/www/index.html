@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Mi App</title>
+<style>body{margin:0;font-family:system-ui;background:#10131a;color:#fff;display:grid;place-items:center;height:100vh;text-align:center}button{font-size:18px;padding:14px 20px;border-radius:10px;border:0;background:#4f8cff;color:#fff;margin:6px}</style></head>
+<body><div><h2>Plantilla WebShell</h2><p>Sustituye esta carpeta <code>assets/www</code> por tu web.</p>
+<button id="b">Descargar archivo de prueba</button><p id="o"></p></div>
+<script>
+document.getElementById('b').onclick=function(){
+  var blob=new Blob(['hola desde la app'],{type:'text/plain'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='prueba.txt';document.body.appendChild(a);a.click();a.remove();
+  document.getElementById('o').textContent='ForgeApp: '+(window.ForgeApp?'sí':'no (estás en un navegador)');
+};
+</script></body></html>

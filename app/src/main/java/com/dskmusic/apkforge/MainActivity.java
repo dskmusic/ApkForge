@@ -46,7 +46,8 @@ public class MainActivity extends Activity {
     private Spinner theme;
     private Button genBtn, zipBtn;
     private Uri zipUri, folderUri;
-    private byte[] customIcon, webIcon;
+    private byte[] customIcon, webIcon, coverRaw, goofIcon;
+    private boolean coverBusy; private int coverGen; private Button coverCancel;
     private boolean running = false;
     private String builtLang;
     private File lastApk, pendingSave;
@@ -130,7 +131,17 @@ public class MainActivity extends Activity {
         link = Ui.edit(this, "https://goof.gg/game/…");
         webUrl = Ui.edit(this, "https://midominio.com/mi-app/");
         link.addTextChangedListener(new SuggestWatcher(false));
+        link.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence c, int a, int b, int d) { }
+            public void onTextChanged(CharSequence c, int a, int b, int d) { }
+            public void afterTextChanged(android.text.Editable e) { autoCover(); }
+        });
         webUrl.addTextChangedListener(new SuggestWatcher(true));
+        webUrl.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence c, int a, int b, int d) { }
+            public void onTextChanged(CharSequence c, int a, int b, int d) { }
+            public void afterTextChanged(android.text.Editable e) { offlineDir = null; useOffline = false; }
+        });
         root.addView(c1);
 
         // datos
@@ -157,6 +168,7 @@ public class MainActivity extends Activity {
         iconPreview = new ImageView(this);
         iconPreview.setBackground(Ui.round(Ui.CARD2, 14, this));
         iconPreview.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        iconPreview.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { recropIcon(); } });
         ir.addView(iconPreview, new LinearLayout.LayoutParams(Ui.dp(this, 72), Ui.dp(this, 72)));
         LinearLayout ib = new LinearLayout(this); ib.setOrientation(LinearLayout.VERTICAL);
         ib.setPadding(Ui.dp(this, 12), 0, 0, 0);
@@ -168,6 +180,9 @@ public class MainActivity extends Activity {
         Button clr = Ui.button(this, "Quitar", Ui.CARD2);
         clr.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { customIcon = null; updateIcon(); } });
         ibr.addView(pick); Space sp = new Space(this); ibr.addView(sp, new LinearLayout.LayoutParams(Ui.dp(this, 8), 1)); ibr.addView(clr);
+        coverCancel = Ui.button(this, "Cancelar", Ui.CARD2); coverCancel.setVisibility(View.GONE);
+        coverCancel.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { coverGen++; coverBusy = false; updateIcon(); } });
+        ibr.addView(coverCancel);
         ib.addView(ibr);
         ir.addView(ib, new LinearLayout.LayoutParams(0, -2, 1));
         c3.addView(ir);
@@ -297,9 +312,15 @@ public class MainActivity extends Activity {
         } else {
             srcBox.addView(Ui.label(this, "URL de la web (la app la abrirá online)"));
             detach(webUrl); srcBox.addView(webUrl);
-            Button b = Ui.button(this, "🔍 Buscar icono de la web", Ui.CARD2);
+            LinearLayout br = Ui.row(this);
+            Button b = Ui.button(this, "🔍 Buscar icono", Ui.CARD2);
             b.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { fetchWebIcon(); } });
-            Ui.gap(srcBox, 8); srcBox.addView(b);
+            Button ob = Ui.button(this, "📦 ¿Offline?", Ui.CARD2);
+            ob.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { checkOffline(); } });
+            br.addView(b, new LinearLayout.LayoutParams(0, -2, 1));
+            br.addView(new Space(this), new LinearLayout.LayoutParams(Ui.dp(this, 8), 1));
+            br.addView(ob, new LinearLayout.LayoutParams(0, -2, 1));
+            Ui.gap(srcBox, 8); srcBox.addView(br);
         }
     }
 
@@ -308,12 +329,15 @@ public class MainActivity extends Activity {
     private void updateIcon() {
         byte[] b = customIcon != null ? customIcon : null;
         if (b != null) { iconPreview.setImageBitmap(BitmapFactory.decodeByteArray(b, 0, b.length)); iconInfo.setText(Lang.t("Icono propio")); }
+        else if (goofIcon != null) { iconPreview.setImageBitmap(BitmapFactory.decodeByteArray(goofIcon, 0, goofIcon.length)); iconInfo.setText(Lang.t("Portada del juego · toca para recortar")); }
         else if (webIcon != null) { iconPreview.setImageBitmap(BitmapFactory.decodeByteArray(webIcon, 0, webIcon.length)); iconInfo.setText(Lang.t("Icono de la web (si no eliges otro)")); }
         else {
             int rid = getResources().getIdentifier("default_icon", "drawable", getPackageName());
             if (rid != 0) iconPreview.setImageResource(rid); else iconPreview.setImageDrawable(null);
             iconInfo.setText(Lang.t("Por defecto (DSK Apps)"));
         }
+        if (coverBusy) iconInfo.setText(Lang.t("Descargando carátula…"));
+        if (coverCancel != null) coverCancel.setVisibility(coverBusy ? View.VISIBLE : View.GONE);
     }
 
     private void pick(String type, int req, boolean multi) {
@@ -396,6 +420,46 @@ public class MainActivity extends Activity {
     private static String stripExt(String s) { int d = s == null ? -1 : s.lastIndexOf('.'); return d > 0 ? s.substring(0, d) : (s == null ? "" : s); }
 
     // ------------------------------------------------------------------ icono web
+    /** Al escribir un enlace goof.gg, baja la portada y la usa de icono (recorte central); tocar la vista previa abre el recortador. */
+    private void autoCover() {
+        // texto pegado tipo "¡Acabo de crear…! https://goof.gg/game/x": se queda solo el enlace
+        java.util.regex.Matcher um = java.util.regex.Pattern.compile("https?://(?:www\\.)?(?:goof\\.gg/game|minigames\\.appversestudio\\.com/games)/[\\w-]+/?").matcher(link.getText());
+        if (um.find() && !um.group().equals(link.getText().toString().trim())) { link.setText(um.group()); return; }
+        ui.removeCallbacks(coverTask); coverGen++; coverBusy = false;
+        coverRaw = null; goofIcon = null; updateIcon();
+        if (link.getText().toString().contains("goof.gg/game/")) ui.postDelayed(coverTask, 800);
+    }
+    private final Runnable coverTask = new Runnable() { public void run() {
+        final String lk = link.getText().toString().trim();
+        final int gen = coverGen; coverBusy = true; updateIcon();
+        new Thread(new Runnable() { public void run() {
+            final byte[] raw = Goof.cover(lk);
+            ui.post(new Runnable() { public void run() {
+                if (gen != coverGen) return;   // cancelado o enlace cambiado
+                coverBusy = false; updateIcon();
+                if (raw == null) return;
+                Bitmap b = BitmapFactory.decodeByteArray(raw, 0, raw.length);
+                if (b == null) return;
+                int sz = Math.min(b.getWidth(), b.getHeight());
+                Bitmap sq = Bitmap.createScaledBitmap(Bitmap.createBitmap(b, (b.getWidth() - sz) / 2, (b.getHeight() - sz) / 2, sz, sz), 512, 512, true);
+                ByteArrayOutputStream bo = new ByteArrayOutputStream(); sq.compress(Bitmap.CompressFormat.PNG, 100, bo);
+                coverRaw = raw; goofIcon = bo.toByteArray(); updateIcon();
+            } });
+        } }).start();
+    } };
+
+    /** Abre el recortador sobre el icono actual (propio, portada o web). */
+    private void recropIcon() {
+        byte[] b = customIcon != null ? customIcon : coverRaw != null ? coverRaw : webIcon;
+        if (b == null) return;
+        try {
+            File f = new File(getCacheDir(), "recrop.img");
+            FileOutputStream o = new FileOutputStream(f); o.write(b); o.close();
+            startActivityForResult(new Intent(this, CropActivity.class).setData(Uri.fromFile(f)), REQ_CROP);
+        } catch (Exception e) { Ui.alert(this, "Error", String.valueOf(e.getMessage())); }
+    }
+
+    // ------------------------------------------------------------------ icono web
     private void fetchWebIcon() {
         final String u = webUrl.getText().toString().trim();
         if (u.length() == 0) { Ui.alert(this, "Icono", "Escribe primero la URL de la web"); return; }
@@ -421,6 +485,117 @@ public class MainActivity extends Activity {
         } });
     }
 
+    // ------------------------------------------------------------------ web offline
+    private File offlineDir;
+    private boolean useOffline;
+    private final java.util.concurrent.atomic.AtomicBoolean crawlCancel = new java.util.concurrent.atomic.AtomicBoolean();
+
+    /** Descarga la web a una carpeta temporal y, si hay resultado, ofrece ZIP / APK offline / seguir con la APK online. */
+    private void checkOffline() {
+        if (running) return;
+        final String url = webUrl.getText().toString().trim();
+        if (!url.matches("(?i)^https?://[^\\s/]+.*")) { Ui.alert(this, "Falta la URL", "Escribe la URL de la web (https://…)."); return; }
+        running = true; genBtn.setEnabled(false);
+        crawlCancel.set(false); useOffline = false; offlineDir = null;
+        logView.setText(""); resultCard.setVisibility(View.GONE);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(0, Ui.dp(this, 14), 0, 0);
+        ProgressBar pb = new ProgressBar(this);   // animación continua: se ve que sigue trabajando
+        pb.setIndeterminate(true);
+        pb.getIndeterminateDrawable().setColorFilter(Ui.ACCENT, android.graphics.PorterDuff.Mode.SRC_IN);
+        box.addView(pb, new LinearLayout.LayoutParams(-1, Ui.dp(this, 36)));
+        final TextView st = Ui.text(this, "Conectando…", 14, Ui.TEXT, false);
+        st.setPadding(0, Ui.dp(this, 6), 0, 0);
+        box.addView(st);
+        final TextView hint = Ui.text(this, "Las webs con muchos archivos pueden tardar un par de minutos. Puedes cancelar cuando quieras.", 12.5f, Ui.MUTED, false);
+        hint.setPadding(0, Ui.dp(this, 6), 0, 0); hint.setVisibility(View.GONE);
+        box.addView(hint);
+        LinearLayout row = Ui.row(this);
+        row.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        row.setPadding(0, Ui.dp(this, 14), 0, 0);
+        Button cb = Ui.button(this, "Cancelar", Ui.CARD2);
+        cb.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { crawlCancel.set(true); } });
+        row.addView(cb);
+        box.addView(row);
+        final android.app.Dialog wait = Ui.show(this, "Comprobando…", "Descargando la web para ver si se puede usar sin conexión.", box);
+        wait.setCancelable(false);
+        final String[] cur = {"Conectando…"};
+        final long t0 = System.currentTimeMillis();
+        new Runnable() { public void run() {   // cada segundo: estado + tiempo transcurrido
+            if (!wait.isShowing()) return;
+            long sec = (System.currentTimeMillis() - t0) / 1000;
+            st.setText(Lang.t(cur[0]) + "  ·  " + sec / 60 + ":" + (sec % 60 < 10 ? "0" : "") + sec % 60);
+            if (sec >= 12) hint.setVisibility(View.VISIBLE);
+            ui.postDelayed(this, 1000);
+        } }.run();
+        new Thread(new Runnable() { public void run() {
+            final File d = new File(getCacheDir(), "webcrawl");
+            WebCrawl.Result res = null; String err = null;
+            try {
+                Files2.deleteTree(d); d.mkdirs();
+                res = WebCrawl.crawl(d, url, 200L << 20, 5000, new Logger() { public void log(String m) { if (m.startsWith("~")) cur[0] = m.substring(1); else MainActivity.this.log(m); } }, crawlCancel);
+            } catch (Throwable e) { err = e.getMessage() == null ? e.toString() : e.getMessage(); }
+            final WebCrawl.Result rr = res; final String ee = err;
+            ui.post(new Runnable() { public void run() {
+                wait.dismiss(); running = false; genBtn.setEnabled(true);
+                if (ee != null) {
+                    Files2.deleteTree(d);
+                    if (crawlCancel.get()) return;
+                    Ui.alert(MainActivity.this, "No se puede hacer offline", ee + "\n\nPuedes crear la APK normal (online) con «Generar APK».");
+                } else offerOffline(rr);
+            } });
+        } }).start();
+    }
+
+    private void offerOffline(final WebCrawl.Result r) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format(Locale.ROOT, "%d archivos, %.1f MB descargados.", r.ok, r.bytes / 1e6));
+        boolean clean = r.failed.isEmpty() && r.external.isEmpty();
+        if (!r.failed.isEmpty()) sb.append("\nNo se pudieron bajar ").append(r.failed.size()).append(": ").append(join(r.failed, 3));
+        if (!r.external.isEmpty()) sb.append("\nSeguirán necesitando conexión: ").append(join(r.external, 3));
+        sb.append(clean ? "\n\nParece que funcionará sin conexión." : "\n\nPuede que no funcione del todo sin conexión.");
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setPadding(0, Ui.dp(this, 14), 0, 0);
+        final android.app.Dialog d = Ui.show(this, "Se puede hacer offline", sb.toString(), col);
+        String[] labels = {"📦 Descargar ZIP a Descargas", "⚒ Generar APK offline", "Seguir con la APK online"};
+        int[] colors = {Ui.CARD2, Ui.ACCENT, Ui.CARD2};
+        Runnable[] acts = {
+            new Runnable() { public void run() { zipOffline(r.dir); } },
+            new Runnable() { public void run() { offlineDir = r.dir; useOffline = true; generate(); } },
+            new Runnable() { public void run() { Files2.deleteTree(r.dir); } }
+        };
+        for (int i = 0; i < labels.length; i++) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+            lp.bottomMargin = Ui.dp(this, 8);
+            col.addView(Ui.dlgBtn(this, d, labels[i], colors[i], acts[i]), lp);
+        }
+    }
+
+    private static String join(Collection<String> c, int max) {
+        StringBuilder sb = new StringBuilder(); int n = 0;
+        for (String s : c) { if (n++ == max) { sb.append("…"); break; } if (n > 1) sb.append(", "); sb.append(s); }
+        return sb.toString();
+    }
+
+    private void zipOffline(final File dir) {
+        if (running) return;
+        String nm0 = name.getText().toString().trim().replaceAll("[\\\\/:*?\"<>|]", "_");
+        final String zn = (nm0.length() == 0 ? "web" : nm0) + ".zip";
+        running = true; genBtn.setEnabled(false);
+        new Thread(new Runnable() { public void run() {
+            String err = null;
+            try { saveZip(dir, zn); } catch (Throwable e) { err = e.getMessage() == null ? e.toString() : e.getMessage(); }
+            finally { Files2.deleteTree(dir); }
+            final String fe = err;
+            ui.post(new Runnable() { public void run() {
+                running = false; genBtn.setEnabled(true);
+                if (fe != null) Ui.alert(MainActivity.this, "Error", fe); else Ui.alert(MainActivity.this, "ZIP guardado", "Descargas/" + zn);
+            } });
+        } }).start();
+    }
+
     private void generate() {
         if (running) return;
         final String nm = name.getText().toString().trim();
@@ -438,7 +613,9 @@ public class MainActivity extends Activity {
         logView.setText(""); resultCard.setVisibility(View.GONE);
 
         final Pipeline.Request r = new Pipeline.Request();
-        r.mode = mode; r.name = nm; r.pkg = pkg.getText().toString().trim();
+        r.mode = mode; r.name = nm;
+        if (mode == Pipeline.Mode.WEB && useOffline && offlineDir != null) { r.mode = Pipeline.Mode.FOLDER; r.folderDir = offlineDir; }
+        final boolean offline = r.mode == Pipeline.Mode.FOLDER && mode == Pipeline.Mode.WEB; useOffline = false; r.pkg = pkg.getText().toString().trim();
         r.versionName = vname.getText().toString(); r.prefix = prefs.prefix();
         String vc = vcode.getText().toString().trim();
         try { r.versionCode = vc.length() == 0 ? 0 : Long.parseLong(vc); } catch (NumberFormatException e) { r.versionCode = 0; }
@@ -450,7 +627,7 @@ public class MainActivity extends Activity {
         o.theme = theme.getSelectedItemPosition() == 1 ? "light" : theme.getSelectedItemPosition() == 2 ? "system" : "dark";
         try { o.loadDelay = Integer.parseInt(delay.getText().toString().trim()); } catch (NumberFormatException e) { o.loadDelay = 700; }
         r.link = link.getText().toString().trim(); r.webUrl = webUrl.getText().toString().trim();
-        r.iconBytes = customIcon;
+        r.iconBytes = customIcon != null ? customIcon : mode == Pipeline.Mode.GOOF ? goofIcon : null;
         final boolean useWebIcon = mode == Pipeline.Mode.WEB && cbWebIcon.isChecked() && customIcon == null;
         final String alias = prefs.alias(), sp = prefs.storePass(), kp = prefs.keyPass();
         r.alias = alias;
@@ -481,6 +658,7 @@ public class MainActivity extends Activity {
                 }
                 final File apk = Pipeline.run(r, new Logger() { public void log(String m) { MainActivity.this.log(m); } });
                 if (zipFileExists(r)) r.zipFile.delete();
+                if (offline) Files2.deleteTree(r.folderDir);
                 ui.post(new Runnable() { public void run() { done(apk, null); } });
             } catch (final Throwable e) {
                 ui.post(new Runnable() { public void run() { done(null, e); } });
@@ -499,10 +677,26 @@ public class MainActivity extends Activity {
         logView.setText(""); resultCard.setVisibility(View.GONE);
         new Thread(new Runnable() { public void run() {
             String err = null;
-            File d = new File(getCacheDir(), "gzip"), z = new File(getCacheDir(), "gzip.zip");
+            File d = new File(getCacheDir(), "gzip");
             try {
                 Files2.deleteTree(d); d.mkdirs();
                 Goof.fetchInto(d, lk, 200L << 20, 5000, new Logger() { public void log(String m) { MainActivity.this.log(m); } });
+                saveZip(d, zn);
+            } catch (Throwable e) { err = e.getMessage() == null ? e.toString() : e.getMessage(); }
+            finally { Files2.deleteTree(d); }
+            final String fe = err;
+            ui.post(new Runnable() { public void run() {
+                running = false; genBtn.setEnabled(true); zipBtn.setEnabled(true);
+                if (fe != null) Ui.alert(MainActivity.this, "Error", fe);
+                else Ui.alert(MainActivity.this, "ZIP guardado", "Descargas/" + zn);
+            } });
+        } }).start();
+    }
+
+    /** Comprime la carpeta d y la guarda como zn en Descargas. */
+    private void saveZip(File d, String zn) throws Exception {
+        File z = new File(getCacheDir(), "gzip.zip");
+        try {
                 ZipOutputStream zo = new ZipOutputStream(new FileOutputStream(z));
                 try {
                     for (String p : Files2.listFiles(d)) { zo.putNextEntry(new ZipEntry(p)); zo.write(Files2.readAll(new File(d, p))); zo.closeEntry(); }
@@ -522,15 +716,7 @@ public class MainActivity extends Activity {
                 }
                 try { os.write(Files2.readAll(z)); } finally { os.close(); }
                 log("Guardado en Descargas: " + zn);
-            } catch (Throwable e) { err = e.getMessage() == null ? e.toString() : e.getMessage(); }
-            finally { Files2.deleteTree(d); z.delete(); }
-            final String fe = err;
-            ui.post(new Runnable() { public void run() {
-                running = false; genBtn.setEnabled(true); zipBtn.setEnabled(true);
-                if (fe != null) Ui.alert(MainActivity.this, "Error", fe);
-                else Ui.alert(MainActivity.this, "ZIP guardado", "Descargas/" + zn);
-            } });
-        } }).start();
+        } finally { z.delete(); }
     }
 
     private boolean zipFileExists(Pipeline.Request r) { return r.zipFile != null && r.zipFile.exists(); }
@@ -567,7 +753,7 @@ public class MainActivity extends Activity {
 
     private void resetForm() {
         autoName = null; name.setText(""); pkg.setText(""); vname.setText("1.0"); vcode.setText(""); link.setText(""); webUrl.setText("");
-        zipUri = null; folderUri = null; customIcon = null; webIcon = null; lastApk = null;
+        zipUri = null; folderUri = null; customIcon = null; webIcon = null; coverRaw = null; goofIcon = null; lastApk = null;
         zipName.setText(Lang.t("Ningún archivo elegido")); folderName.setText(Lang.t("Ninguna carpeta elegida"));
         resultCard.setVisibility(View.GONE); logView.setText(""); ((View) logView.getParent()).setVisibility(View.GONE);
         updateIcon();

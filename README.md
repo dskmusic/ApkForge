@@ -23,6 +23,8 @@
 - Builds a **signed, installable APK** from a **ZIP/APK**, a **folder** or an **online website**.
 - App name, package, version, icon (custom, site favicon or default), orientation, fullscreen, theme…
 - **Install**, **Share** (one or several) or **Save as…** from the list of generated APKs.
+- **Website → offline app:** in *Web* mode, **📦 Offline?** downloads the site's files, tells you how well it will work without a connection and lets you save a **ZIP** to Downloads or build an **offline APK**. If it's not possible you can still build the normal (online) APK.
+- **Downloads from inside the generated apps** (images, videos, audio, any file) are saved to `Downloads/<App name>/` as `<App name>_yyyyMMdd_HHmmss.<ext>`.
 - Everything runs on the device: no server.
 - **English / Spanish**: automatic (Spanish if your phone is in Spanish, English otherwise), changeable in **Settings → Language**.
 

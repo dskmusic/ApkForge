@@ -1,0 +1,50 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Firma de release: si existe keystore.properties (en la raíz del proyecto) se usa automáticamente
+def ksFile = rootProject.file('keystore.properties')
+def ksProps = new Properties()
+if (ksFile.exists()) ksProps.load(new FileInputStream(ksFile))
+
+android {
+    namespace 'com.dskmusic.shell'          // paquete de las clases Java (NO cambiar salvo que muevas las clases)
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.dskmusic.miapp'  // <- el ID real de tu app (paquete)
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    signingConfigs {
+        if (ksFile.exists()) {
+            release {
+                storeFile file(ksProps['storeFile'])
+                storePassword ksProps['storePassword']
+                keyAlias ksProps['keyAlias']
+                keyPassword ksProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (ksFile.exists()) signingConfig signingConfigs.release
+        }
+    }
+
+    // Audio/vídeo/wasm sin comprimir: el servidor local los sirve por descriptor (rápido, con Range)
+    androidResources {
+        noCompress 'mp3', 'ogg', 'wav', 'm4a', 'aac', 'flac', 'mp4', 'webm', 'wasm', 'glb', 'png', 'jpg', 'webp'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}

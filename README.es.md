@@ -23,6 +23,8 @@
 - Crea un **APK firmado e instalable** a partir de: un **ZIP/APK**, una **carpeta** o una **web online**.
 - Nombre, paquete, versión, icono (propio, favicon de la web o por defecto), orientación, pantalla completa, tema…
 - **Instalar**, **Compartir** (uno o varios) o **Guardar como…** desde la lista de APKs generados.
+- **Web → app offline:** en el modo *Web*, **📦 ¿Offline?** descarga los archivos de la web, te dice si funcionará sin conexión y te deja guardar un **ZIP** en Descargas o generar un **APK offline**. Si no es posible, sigues pudiendo crear el APK normal (online).
+- **Descargas desde las apps generadas** (imágenes, vídeos, audio, cualquier archivo): se guardan en `Descargas/<Nombre de la app>/` como `<Nombre de la app>_aaaaMMdd_HHmmss.<ext>`.
 - Todo en el propio dispositivo: sin servidor.
 - **Español / Inglés**: automático (español si el móvil está en español, inglés si no), cambiable en **Ajustes → Idioma**.
 

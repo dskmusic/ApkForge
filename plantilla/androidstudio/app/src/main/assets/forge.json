@@ -1,0 +1,1 @@
+{"name": "Mi App", "package": "com.dskmusic.miapp", "entry": "index.html", "orientation": "auto", "fullscreen": true, "keepAwake": true, "bg": "", "selectText": true, "zoom": true, "pullRefresh": true, "theme": "dark", "mobileViewport": true}

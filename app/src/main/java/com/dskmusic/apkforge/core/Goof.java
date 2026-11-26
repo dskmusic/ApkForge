@@ -56,12 +56,26 @@ public final class Goof {
         link = link.trim();
         Matcher m = GOOF_URL.matcher(link);
         if (m.find()) return m.group(1);
-        m = Pattern.compile("^https?://(?:www\\.)?goof\\.gg/game/([\\w-]+)").matcher(link);
+        m = Pattern.compile("https?://(?:www\\.)?goof\\.gg/game/([\\w-]+)").matcher(link);
         if (!m.find()) throw new ForgeException("Enlace no válido (https://goof.gg/game/… o la URL del juego)");
         String page = new String(get("https://goof.gg/game/" + m.group(1), 20000), "UTF-8");
-        Matcher g = Pattern.compile("og:image\" content=\"[^\"]*?/covers/([\\w-]+?)-[0-9a-f]{10}\\.\\w+").matcher(page);
-        // juegos de usuario (UUID): sin portada /covers/, el propio id del enlace es el del juego
-        return g.find() ? g.group(1) : m.group(1);
+        // og:image (formato antiguo) o "image" del JSON-LD VideoGame (actual): ambos apuntan a /covers/<id>-<hash>
+        Matcher g = Pattern.compile("(?:og:image\" content=\"|\"@type\":\"VideoGame\"[^\\]]*?\"image\":\")[^\"]*?/covers/([\\w-]+?)-[0-9a-f]{10}\\.\\w+").matcher(page);
+        if (g.find()) return g.group(1);
+        // juegos con portada /assets/users/…: el id real (UUID) va junto al slug en el JSON de la página
+        Matcher s = Pattern.compile("\"id\":\"([\\w-]+)\",\"slug\":\"" + Pattern.quote(m.group(1)) + "\"").matcher(page);
+        return s.find() ? s.group(1) : m.group(1);
+    }
+
+    /** Imagen de portada del juego (JSON-LD VideoGame "image"), o null si no hay/falla. Solo enlaces goof.gg/game/… */
+    public static byte[] cover(String link) {
+        try {
+            Matcher m = Pattern.compile("goof\\.gg/game/([\\w-]+)").matcher(link);
+            if (!m.find()) return null;
+            String page = new String(get("https://goof.gg/game/" + m.group(1), 20000), "UTF-8");
+            Matcher g = Pattern.compile("\"@type\":\"VideoGame\"[^\\]]*?\"image\":\"([^\"]+)\"").matcher(page);
+            return g.find() ? get(g.group(1).replace("\\/", "/"), 20000) : null;
+        } catch (Exception e) { return null; }
     }
 
     static Set<String> findPaths(String text) {
